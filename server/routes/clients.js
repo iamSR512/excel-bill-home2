@@ -1,6 +1,6 @@
 const express = require('express');
 const Client = require('../models/Client');
-const RateConfig = require('../models/RateConfig'); // ✅ Global Config import
+const RateConfig = require('../models/RateConfig');
 const router = express.Router();
 
 // Get all clients
@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ✅ Global Config নিন
+    // Global Config নিন
     const globalConfig = await RateConfig.findOne().sort({ updatedAt: -1 });
 
     const client = new Client({
@@ -50,7 +50,11 @@ router.post('/register', async (req, res) => {
       phone: phone || '',
       registeredBy,
       ratePerKg: globalConfig?.ratePerKg ?? 0,
-      usdSurcharge: globalConfig?.usdSurcharge ?? 0
+      usdSurcharge: globalConfig?.usdSurcharge ?? 0,
+      baseRate: globalConfig?.baseRate ?? 0,
+      extraRatePerKg: globalConfig?.extraRatePerKg ?? 0,
+      discountType: globalConfig?.discountType ?? 'percentage',
+      discountValue: globalConfig?.discountValue ?? 0
     });
 
     await client.save();
@@ -78,7 +82,7 @@ router.post('/check', async (req, res) => {
     const client = await Client.findOne({
       name: name.trim(),
       address: address.trim()
-    });
+    }).populate('registeredBy', 'name email');
 
     res.json({
       success: true,
@@ -97,13 +101,13 @@ router.post('/check', async (req, res) => {
 // Update client (Rate Config or other info)
 router.put('/:id', async (req, res) => {
   try {
-    const { ratePerKg, usdSurcharge } = req.body;
+    const { ratePerKg, usdSurcharge, baseRate, extraRatePerKg, discountType, discountValue } = req.body;
 
     const updatedClient = await Client.findByIdAndUpdate(
       req.params.id,
-      { ratePerKg, usdSurcharge },
+      { ratePerKg, usdSurcharge, baseRate, extraRatePerKg, discountType, discountValue },
       { new: true }
-    );
+    ).populate('registeredBy', 'name email');
 
     if (!updatedClient) {
       return res.status(404).json({

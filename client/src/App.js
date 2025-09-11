@@ -8,6 +8,7 @@ import Admin from './pages/Admin';
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ClientList from './pages/ClientList';
+
 function App() {
   return (
     <AuthProvider>

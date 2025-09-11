@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import RateConfigModal from "../components/RateConfigModal";
 
-import RateConfigModal from "../components/RateConfigModal"; // Global Rate Config Modal
 
 const ClientList = () => {
   const [clients, setClients] = useState([]);
@@ -14,6 +14,10 @@ const ClientList = () => {
   // Rate config form state
   const [ratePerKg, setRatePerKg] = useState("");
   const [usdSurcharge, setUsdSurcharge] = useState("");
+  const [baseRate, setBaseRate] = useState("");
+  const [extraRatePerKg, setExtraRatePerKg] = useState("");
+  const [discountType, setDiscountType] = useState("percentage");
+  const [discountValue, setDiscountValue] = useState("");
 
   useEffect(() => {
     fetchClients();
@@ -43,6 +47,10 @@ const ClientList = () => {
       const res = await axios.put(`/api/clients/${selectedClient._id}`, {
         ratePerKg: ratePerKg === "" ? null : Number(ratePerKg),
         usdSurcharge: usdSurcharge === "" ? null : Number(usdSurcharge),
+        baseRate: baseRate === "" ? null : Number(baseRate),
+        extraRatePerKg: extraRatePerKg === "" ? null : Number(extraRatePerKg),
+        discountType: discountType,
+        discountValue: discountValue === "" ? 0 : Number(discountValue),
       });
       if (res.data.success) {
         alert("Rate configuration updated!");
@@ -62,7 +70,6 @@ const ClientList = () => {
     <div style={{ padding: "20px" }}>
       <h2>Client List</h2>
 
-      {/* Global Rate Config */}
       <button
         onClick={() => setGlobalModal(true)}
         style={{ marginBottom: "20px" }}
@@ -84,6 +91,9 @@ const ClientList = () => {
             <th>Registered By</th>
             <th>Rate Per KG</th>
             <th>USD Surcharge</th>
+            <th>Base Rate</th>
+            <th>Extra Rate/Kg</th>
+            <th>Discount</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -99,12 +109,24 @@ const ClientList = () => {
               </td>
               <td>{client.ratePerKg ?? "-"}</td>
               <td>{client.usdSurcharge ?? "-"}</td>
+              <td>{client.baseRate ?? "-"}</td>
+              <td>{client.extraRatePerKg ?? "-"}</td>
+              <td>
+                {client.discountValue > 0 
+                  ? `${client.discountValue}${client.discountType === 'percentage' ? '%' : '৳'}` 
+                  : "-"
+                }
+              </td>
               <td>
                 <button
                   onClick={() => {
                     setSelectedClient(client);
                     setRatePerKg(client.ratePerKg ?? "");
                     setUsdSurcharge(client.usdSurcharge ?? "");
+                    setBaseRate(client.baseRate ?? "");
+                    setExtraRatePerKg(client.extraRatePerKg ?? "");
+                    setDiscountType(client.discountType ?? "percentage");
+                    setDiscountValue(client.discountValue ?? "");
                     setShowProfileModal(true);
                   }}
                 >
@@ -116,7 +138,6 @@ const ClientList = () => {
         </tbody>
       </table>
 
-      {/* Profile Modal */}
       {showProfileModal && selectedClient && (
         <div
           style={{
@@ -137,7 +158,9 @@ const ClientList = () => {
               background: "white",
               padding: "20px",
               borderRadius: "8px",
-              width: "400px",
+              width: "500px",
+              maxHeight: "80vh",
+              overflowY: "auto",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -158,7 +181,9 @@ const ClientList = () => {
             </p>
 
             <h4>Rate Configuration</h4>
-            <div>
+            
+            {/* পুরানো রেট কনফিগারেশন */}
+            <div style={{ marginBottom: "10px" }}>
               <label>Rate per KG: </label>
               <input
                 type="number"
@@ -167,7 +192,7 @@ const ClientList = () => {
                 placeholder="Enter rate"
               />
             </div>
-            <div>
+            <div style={{ marginBottom: "10px" }}>
               <label>USD Surcharge: </label>
               <input
                 type="number"
@@ -176,8 +201,51 @@ const ClientList = () => {
                 placeholder="Enter surcharge"
               />
             </div>
+            
+            {/* নতুন টায়ার্ড প্রাইসিং কনফিগারেশন */}
+            <h4 style={{ marginTop: "20px" }}>Tiered Pricing Configuration</h4>
+            <div style={{ marginBottom: "10px" }}>
+              <label>Base Rate (প্রথম ১ কেজির জন্য): </label>
+              <input
+                type="number"
+                value={baseRate}
+                onChange={(e) => setBaseRate(e.target.value)}
+                placeholder="Enter base rate"
+              />
+            </div>
+            <div style={{ marginBottom: "20px" }}>
+              <label>Extra Rate per Kg (১ কেজির পরের জন্য): </label>
+              <input
+                type="number"
+                value={extraRatePerKg}
+                onChange={(e) => setExtraRatePerKg(e.target.value)}
+                placeholder="Enter extra rate per kg"
+              />
+            </div>
 
-            <button onClick={handleSaveRates} style={{ marginRight: "10px" }}>
+            {/* ডিসকাউন্ট কনফিগারেশন */}
+            <h4 style={{ marginTop: "20px" }}>Discount Configuration</h4>
+            <div style={{ marginBottom: "10px" }}>
+              <label>Discount Type: </label>
+              <select
+                value={discountType}
+                onChange={(e) => setDiscountType(e.target.value)}
+              >
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: "20px" }}>
+              <label>Discount Value: </label>
+              <input
+                type="number"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                placeholder="Enter discount value"
+              />
+            </div>
+
+            <button onClick={handleSaveRates} style={{ marginRight: "10px", marginTop: "20px" }}>
               Save
             </button>
             <button onClick={() => setShowProfileModal(false)}>Close</button>
@@ -185,7 +253,6 @@ const ClientList = () => {
         </div>
       )}
 
-      {/* Global Rate Config Modal */}
       <RateConfigModal
         isOpen={globalModal}
         onClose={() => {

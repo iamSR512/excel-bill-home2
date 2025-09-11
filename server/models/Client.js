@@ -36,7 +36,23 @@ const clientSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  // নতুন rateConfigurations ফিল্ড যোগ করা হয়েছে
+  baseRate: {
+    type: Number,
+    default: 0
+  },
+  extraRatePerKg: {
+    type: Number,
+    default: 0
+  },
+  discountType: {
+    type: String,
+    enum: ['percentage', 'fixed'],
+    default: 'percentage'
+  },
+  discountValue: {
+    type: Number,
+    default: 0
+  },
   rateConfigurations: [{
     shipperAddressPattern: String,
     weight: Number,

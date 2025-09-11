@@ -44,12 +44,28 @@ const FileUpload = ({ onDataProcessed }) => {
         return {
           ratePerKg: data.client.ratePerKg ?? 0,
           usdSurcharge: data.client.usdSurcharge ?? 0,
+          baseRate: data.client.baseRate ?? 0,
+          extraRatePerKg: data.client.extraRatePerKg ?? 0,
+          discountType: data.client.discountType ?? 'percentage',
+          discountValue: data.client.discountValue ?? 0,
         };
       }
     } catch (err) {
       console.error("Rate fetch error:", err);
     }
     return null;
+  };
+
+  const applyDiscount = (price, discountType, discountValue) => {
+    if (discountValue <= 0) return price;
+    
+    if (discountType === 'percentage') {
+      return price - (price * discountValue / 100);
+    } else if (discountType === 'fixed') {
+      return Math.max(0, price - discountValue);
+    }
+    
+    return price;
   };
 
   const processExcelFile = (file) => {
@@ -102,23 +118,51 @@ const FileUpload = ({ onDataProcessed }) => {
             const binVat = rowData[11] || "";
 
             let finalPrice = 0;
-if (consignee && wt > 0) {
-  const rateConfig = await fetchClientRate(
-    consignee.toString().trim(),
-    cneeAddress?.toString().trim()
-  );
+            let discountAmount = 0;
+            if (consignee && wt > 0) {
+              const rateConfig = await fetchClientRate(
+                consignee.toString().trim(),
+                cneeAddress?.toString().trim()
+              );
 
-  if (rateConfig) {
-    if (rateConfig.usdSurcharge > 0) {
-      // শুধু Surcharge থাকলে এটিই final হবে
-      finalPrice = rateConfig.usdSurcharge;
-    } else if (rateConfig.ratePerKg > 0) {
-      // অন্যথায় per KG হিসাব হবে
-      finalPrice = wt * rateConfig.ratePerKg;
-    }
-  }
-}
+              if (rateConfig) {
+                console.log(`Client: ${consignee}, WT: ${wt}, Base Rate: ${rateConfig.baseRate}, Extra Rate: ${rateConfig.extraRatePerKg}, Discount: ${rateConfig.discountValue}${rateConfig.discountType === 'percentage' ? '%' : ''}`);
+                
+                // নতুন প্রাইসিং মডেল: প্রথম ১ কেজি Base Rate, তারপর Extra Rate
+                if (rateConfig.baseRate > 0 && rateConfig.extraRatePerKg > 0) {
+                  if (wt <= 1) {
+                    finalPrice = rateConfig.baseRate;
+                  } else {
+                    finalPrice = rateConfig.baseRate + (wt - 1) * rateConfig.extraRatePerKg;
+                  }
+                  console.log(`Using tiered pricing: ${finalPrice} = ${rateConfig.baseRate} + (${wt} - 1) * ${rateConfig.extraRatePerKg}`);
+                }
+                // পুরানো লজিক (ব্যাকওয়ার্ড কম্প্যাটিবিলিটির জন্য)
+                else if (rateConfig.ratePerKg > 0 && wt === rateConfig.ratePerKg) {
+                  finalPrice = rateConfig.usdSurcharge;
+                  console.log(`Using USD Surcharge: ${finalPrice} (WT matches RatePerKG)`);
+                } 
+                else if (rateConfig.ratePerKg > 0) {
+                  finalPrice = wt * rateConfig.ratePerKg;
+                  console.log(`Using normal calculation: ${finalPrice} = ${wt} × ${rateConfig.ratePerKg}`);
+                }
+                else if (rateConfig.usdSurcharge > 0) {
+                  finalPrice = rateConfig.usdSurcharge;
+                  console.log(`Using USD Surcharge: ${finalPrice} (No RatePerKG configured)`);
+                }
 
+                // ডিসকাউন্ট অ্যাপ্লাই করুন
+                const priceBeforeDiscount = finalPrice;
+                finalPrice = applyDiscount(finalPrice, rateConfig.discountType, rateConfig.discountValue);
+                discountAmount = priceBeforeDiscount - finalPrice;
+                
+                if (discountAmount > 0) {
+                  console.log(`Applied discount: ${discountAmount} (${rateConfig.discountValue}${rateConfig.discountType === 'percentage' ? '%' : ''})`);
+                }
+              } else {
+                console.warn(`কোনো ক্লাইন্ট পাওয়া যায়নি: ${consignee}`);
+              }
+            }
 
             items.push({
               id: no || row + 1,
@@ -135,7 +179,7 @@ if (consignee && wt > 0) {
               binVat: binVat.toString(),
               price: finalPrice,
               quantity: 1,
-              discount: 0,
+              discount: discountAmount,
               total: finalPrice,
             });
           }
@@ -145,7 +189,8 @@ if (consignee && wt > 0) {
           }
 
           const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
-          resolve({ items, grandTotal });
+          const totalDiscount = items.reduce((sum, item) => sum + item.discount, 0);
+          resolve({ items, grandTotal, totalDiscount });
         } catch (error) {
           reject(error);
         }
@@ -175,9 +220,9 @@ if (consignee && wt > 0) {
       setProcessedData(result);
       localStorage.setItem("processedExcelData", JSON.stringify(result));
 
-      onDataProcessed(result.items, result.grandTotal);
+      onDataProcessed(result.items, result.grandTotal, result.totalDiscount);
       alert(
-        `ফাইল সফলভাবে প্রসেস হয়েছে! ${result.items.length} টি আইটেম পাওয়া গেছে।`
+        `ফাইল সফলভাবে প্রসেস হয়েছে! ${result.items.length} টি আইটেম পাওয়া গেছে। মোট ডিসকাউন্ট: ${result.totalDiscount.toFixed(2)}`
       );
     } catch (error) {
       console.error("File processing error:", error);
@@ -192,7 +237,7 @@ if (consignee && wt > 0) {
     setSelectedFile(null);
     localStorage.removeItem("processedExcelData");
     if (onDataProcessed) {
-      onDataProcessed([], 0);
+      onDataProcessed([], 0, 0);
     }
     alert("ডেটা সাফ করা হয়েছে।");
   };
@@ -201,27 +246,28 @@ if (consignee && wt > 0) {
     <div className="card">
       <h3>এক্সেল ফাইল আপলোড</h3>
 
-      {processedData && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "10px",
-            backgroundColor: "#e7f4e4",
-            borderRadius: "5px",
-          }}
-        >
-          <h4>✅ প্রসেস করা ডেটা সংরক্ষিত আছে</h4>
-          <p>মোট আইটেম: {processedData.items.length}টি</p>
-          <p>মোট মূল্য: {processedData.grandTotal.toFixed(2)}</p>
-          <button
-            className="btn btn-secondary"
-            onClick={clearData}
-            style={{ marginTop: "10px" }}
-          >
-            ডেটা সাফ করুন
-          </button>
-        </div>
-      )}
+  {processedData && (
+  <div
+    style={{
+      marginBottom: "20px",
+      padding: "10px",
+      backgroundColor: "#e7f4e4",
+      borderRadius: "5px",
+    }}
+  >
+    <h4>✅ প্রসেস করা ডেটা সংরক্ষিত আছে</h4>
+    <p>মোট আইটেম: {processedData.items.length}টি</p>
+    <p>মোট মূল্য: {processedData.grandTotal?.toFixed(2)}</p>
+    <p>মোট ডিসকাউন্ট: {(processedData.totalDiscount || 0).toFixed(2)}</p>
+    <button
+      className="btn btn-secondary"
+      onClick={clearData}
+      style={{ marginTop: "10px" }}
+    >
+      ডেটা সাফ করুন
+    </button>
+  </div>
+)}
 
       <div className="form-group">
         <label>এক্সেল ফাইল নির্বাচন করুন (.xlsx, .xls, .csv):</label>
@@ -235,7 +281,7 @@ if (consignee && wt > 0) {
       {selectedFile && (
         <div>
           <p>নির্বাচিত ফাইল: {selectedFile.name}</p>
-          <p>ফাইলের সাইজ: {(selectedFile.size / 1024).toFixed(2)} KB</p>
+          <p>फाइলের সাইজ: {(selectedFile.size / 1024).toFixed(2)} KB</p>
         </div>
       )}
 
@@ -274,10 +320,24 @@ if (consignee && wt > 0) {
         </ul>
 
         <h4 style={{ marginTop: "15px", color: "#007bff" }}>মূল্য হিসাব পদ্ধতি:</h4>
-        <p>
-          <strong>মূল্য = (ওজন × প্রতি কেজি রেট) + USD সারচার্জ</strong>
+        <p style={{ color: "#dc3545", fontWeight: "bold" }}>
+          নতুন প্রাইসিং মডেল: প্রথম ১ কেজি Base Rate, তারপর Extra Rate
         </p>
-        <p>উদাহরণ: 1kg × 700 + 0 = 700 টাকা</p>
+        <p>✅ উদাহরণ: WT = 0.5 → মূল্য = Base Rate (500)</p>
+        <p>✅ উদাহরণ: WT = 1 → মূল্য = Base Rate (500)</p>
+        <p>✅ উদাহরণ: WT = 2 → মূল্য = 500 + (2-1) × 400 = 900</p>
+        <p>✅ উদাহরণ: WT = 3 → মূল্য = 500 + (3-1) × 400 = 1300</p>
+        
+        <p style={{ color: "#28a745", fontWeight: "bold", marginTop: "15px" }}>
+          ডিসকাউন্ট সিস্টেম:
+        </p>
+        <p>✅ শতকরা ডিসকাউন্ট: মূল্য থেকে X% কাটা হবে</p>
+        <p>✅ ফিক্সড ডিসকাউন্ট: মূল্য থেকে X টাকা কাটা হবে</p>
+        
+        <p style={{ color: "#6c757d", fontStyle: "italic", marginTop: "15px" }}>
+          Note: ক্লাইন্ট কনফিগারেশনে Base Rate, Extra Rate per Kg এবং ডিসকাউন্ট সেট করতে হবে।
+          যদি না থাকে, তাহলে পুরানো লজিক ব্যবহার করা হবে।
+        </p>
       </div>
     </div>
   );
