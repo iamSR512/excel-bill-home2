@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import RateConfigModal from "../components/RateConfigModal";
 
-
 const ClientList = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,6 +9,7 @@ const ClientList = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [globalModal, setGlobalModal] = useState(false);
+  const [duplicateClients, setDuplicateClients] = useState([]);
 
   // Rate config form state
   const [ratePerKg, setRatePerKg] = useState("");
@@ -28,7 +28,12 @@ const ClientList = () => {
     try {
       const res = await axios.get("/api/clients");
       if (res.data.success) {
-        setClients(res.data.clients);
+        const clientsData = res.data.clients;
+        setClients(clientsData);
+        
+        // ডুপ্লিকেট ক্লায়েন্ট খুঁজে বের করুন
+        findDuplicateClients(clientsData);
+        
         setError("");
       } else {
         setError("Failed to fetch clients");
@@ -38,6 +43,53 @@ const ClientList = () => {
       setError("Failed to fetch clients");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ডুপ্লিকেট ক্লায়েন্ট খুঁজে বের করার ফাংশন
+  const findDuplicateClients = (clientsData) => {
+    const nameMap = {};
+    const duplicates = [];
+    
+    clientsData.forEach(client => {
+      const key = `${client.name.toLowerCase().trim()}`;
+      
+      if (nameMap[key]) {
+        duplicates.push(client);
+      } else {
+        nameMap[key] = true;
+      }
+    });
+    
+    setDuplicateClients(duplicates);
+  };
+
+  // ডুপ্লিকেট ক্লায়েন্ট মুছে ফেলার ফাংশন
+  const handleDeleteDuplicate = async (clientId) => {
+    try {
+      const res = await axios.delete(`/api/clients/${clientId}`);
+      if (res.data.success) {
+        alert("ডুপ্লিকেট ক্লায়েন্ট মুছে ফেলা হয়েছে!");
+        fetchClients(); // তালিকা রিফ্রেশ করুন
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("ডুপ্লিকেট ক্লায়েন্ট মুছতে সমস্যা হয়েছে");
+    }
+  };
+
+  // ক্লায়েন্ট রেজিস্ট্রেশনের সময় ডুপ্লিকেট চেক করার ফাংশন
+  const checkDuplicateBeforeRegister = async (name, address) => {
+    try {
+      const res = await axios.post("/api/clients/check-duplicate", {
+        name: name.trim().toLowerCase(),
+        address: address.trim().toLowerCase()
+      });
+      
+      return res.data.isDuplicate;
+    } catch (err) {
+      console.error("Duplicate check error:", err);
+      return false;
     }
   };
 
@@ -69,6 +121,27 @@ const ClientList = () => {
   return (
     <div style={{ padding: "20px" }}>
       <h2>Client List</h2>
+
+      {/* ডুপ্লিকেট ক্লায়েন্ট সেকশন */}
+      {duplicateClients.length > 0 && (
+        <div style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#fff3cd", border: "1px solid #ffeaa7" }}>
+          <h3 style={{ color: "#856404" }}>ডুপ্লিকেট ক্লায়েন্ট সনাক্তকরণ</h3>
+          <p>নিম্নলিখিত {duplicateClients.length}টি ডুপ্লিকেট ক্লায়েন্ট পাওয়া গেছে:</p>
+          <ul>
+            {duplicateClients.map(client => (
+              <li key={client._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <span>{client.name} - {client.address}</span>
+                <button 
+                  onClick={() => handleDeleteDuplicate(client._id)}
+                  style={{ padding: "5px 10px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}
+                >
+                  মুছুন
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <button
         onClick={() => setGlobalModal(true)}

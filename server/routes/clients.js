@@ -28,15 +28,17 @@ router.post('/register', async (req, res) => {
   try {
     const { name, address, email, phone, registeredBy } = req.body;
 
+    // Check for duplicate client by name and address
     const existingClient = await Client.findOne({
-      name: name.trim(),
-      address: address.trim()
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+      address: { $regex: new RegExp(`^${address.trim()}$`, 'i') }
     });
 
     if (existingClient) {
       return res.status(400).json({
         success: false,
-        message: 'Client already registered with this name and address'
+        message: 'Client already registered with this name and address',
+        existingClient
       });
     }
 
@@ -66,6 +68,14 @@ router.post('/register', async (req, res) => {
       client
     });
   } catch (error) {
+    if (error.code === 11000) {
+      // MongoDB duplicate key error
+      return res.status(400).json({
+        success: false,
+        message: 'Client already exists with this name and address'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Client registration failed',
@@ -80,8 +90,8 @@ router.post('/check', async (req, res) => {
     const { name, address } = req.body;
 
     const client = await Client.findOne({
-      name: name.trim(),
-      address: address.trim()
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+      address: { $regex: new RegExp(`^${address.trim()}$`, 'i') }
     }).populate('registeredBy', 'name email');
 
     res.json({
@@ -98,6 +108,30 @@ router.post('/check', async (req, res) => {
   }
 });
 
+// Check for duplicate client
+router.post('/check-duplicate', async (req, res) => {
+  try {
+    const { name, address } = req.body;
+
+    const client = await Client.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+      address: { $regex: new RegExp(`^${address.trim()}$`, 'i') }
+    });
+
+    res.json({
+      success: true,
+      isDuplicate: !!client,
+      client
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check duplicate client',
+      error: error.message
+    });
+  }
+});
+
 // Update client (Rate Config or other info)
 router.put('/:id', async (req, res) => {
   try {
@@ -105,8 +139,16 @@ router.put('/:id', async (req, res) => {
 
     const updatedClient = await Client.findByIdAndUpdate(
       req.params.id,
-      { ratePerKg, usdSurcharge, baseRate, extraRatePerKg, discountType, discountValue },
-      { new: true }
+      { 
+        ratePerKg, 
+        usdSurcharge, 
+        baseRate, 
+        extraRatePerKg, 
+        discountType, 
+        discountValue,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
     ).populate('registeredBy', 'name email');
 
     if (!updatedClient) {
@@ -116,11 +158,40 @@ router.put('/:id', async (req, res) => {
       });
     }
 
-    res.json({ success: true, client: updatedClient });
+    res.json({ 
+      success: true, 
+      message: 'Client updated successfully',
+      client: updatedClient 
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Update failed',
+      error: error.message
+    });
+  }
+});
+
+// Delete a client
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedClient = await Client.findByIdAndDelete(req.params.id);
+    
+    if (!deletedClient) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Client deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete client',
       error: error.message
     });
   }
@@ -133,7 +204,10 @@ router.post('/:id/rates', async (req, res) => {
     const client = await Client.findById(req.params.id);
     
     if (!client) {
-      return res.status(404).json({ message: 'Client not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Client not found' 
+      });
     }
     
     client.rateConfigurations.push({ shipperAddressPattern, weight, rate });
@@ -149,6 +223,31 @@ router.post('/:id/rates', async (req, res) => {
       success: false,
       message: 'Failed to add rate configuration', 
       error: error.message 
+    });
+  }
+});
+
+// Get a specific client by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const client = await Client.findById(req.params.id).populate('registeredBy', 'name email');
+    
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      client
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch client',
+      error: error.message
     });
   }
 });

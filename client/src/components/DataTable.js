@@ -90,16 +90,23 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       const itemData = {
         id: item.id || '',
         awbNo: item.awbNo || '',
+        extra: item.extra || '',
         shipper: item.shipper || '',
         shipperAddress: item.shipperAddress || '',
+        consignee: item.customerName || '',
+        binVat: item.binVat || '',
         dest: item.dest || '',
         cneeAddress: item.cneeAddress || '',
+        ctc: item.ctc || '',
+        telNo: item.telNo || '',
         nop: item.nop || '',
         wt: item.wt || '',
-        product: item.product || '',
+        vol: item.vol || '',
+        dsct: item.product || '',
         cod: item.cod || '',
         val: item.val || '',
-        binVat: item.binVat || '',
+        re: item.re || '',
+        bagNo: item.bagNo || '',
         price: parseFloat(item.price) || 0,
         quantity: parseInt(item.quantity) || 1,
         discount: parseInt(item.discount) || 0,
@@ -165,16 +172,23 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       const allItemsData = items.map(item => ({
         id: item.id || '',
         awbNo: item.awbNo || '',
+        extra: item.extra || '',
         shipper: item.shipper || '',
         shipperAddress: item.shipperAddress || '',
+        consignee: item.customerName || '',
+        binVat: item.binVat || '',
         dest: item.dest || '',
         cneeAddress: item.cneeAddress || '',
+        ctc: item.ctc || '',
+        telNo: item.telNo || '',
         nop: item.nop || '',
         wt: item.wt || '',
-        product: item.product || '',
+        vol: item.vol || '',
+        dsct: item.product || '',
         cod: item.cod || '',
         val: item.val || '',
-        binVat: item.binVat || '',
+        re: item.re || '',
+        bagNo: item.bagNo || '',
         price: parseFloat(item.price) || 0,
         quantity: parseInt(item.quantity) || 1,
         discount: parseInt(item.discount) || 0,
@@ -211,10 +225,18 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
     }
   };
 
-  // Register client function
+  // Register client function with duplicate check
   const handleRegisterClient = async (item, index) => {
     if (!user) {
-      alert('দয়া করে প্রথমে लগইন করুন');
+      alert('দয়া করে প্রথমে লগইন করুন');
+      return;
+    }
+
+    const clientKey = `${item.customerName}-${item.cneeAddress}`;
+    
+    // প্রথমে চেক করুন ক্লায়েন্ট ইতিমধ্যে রেজিস্টার্ড কি না
+    if (registeredClients[clientKey]) {
+      alert('এই ক্লায়েন্ট ইতিমধ্যে রেজিস্টার্ড আছে');
       return;
     }
 
@@ -225,6 +247,26 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       
       if (!token) {
         alert('Authentication token not found. Please login again.');
+        return;
+      }
+
+      // সার্ভারে ডুপ্লিকেট চেক করুন
+      const duplicateCheck = await fetch('http://localhost:5000/api/clients/check-duplicate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: item.customerName,
+          address: item.cneeAddress
+        })
+      });
+      
+      const duplicateResult = await duplicateCheck.json();
+      
+      if (duplicateResult.isDuplicate) {
+        alert('এই নাম এবং ঠিকানা সহ একটি ক্লায়েন্ট ইতিমধ্যে存在 আছে!');
         return;
       }
 
@@ -249,7 +291,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         alert(`${item.customerName}-কে সফলভাবে রেজিস্টার করা হয়েছে!`);
         setRegisteredClients(prev => ({
           ...prev,
-          [`${item.customerName}-${item.cneeAddress}`]: true
+          [clientKey]: true
         }));
       } else {
         alert(data.message || 'ক্লায়েন্ট রেজিস্ট্রেশন ব্যর্থ হয়েছে');
@@ -266,38 +308,43 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
     return (
       <div className="card">
         <h3>বিল ডেটা</h3>
-        <p>কোন ডেটা পাওয়া যায়নি। দয়া করে একটি এক্সেল ফাইল আপলোড করুন।</p>
+        <p>কোন ডেটা পাওয়া যায়নি। দয়া করে একটি এক্সেল ফাইল আপلোড করুন।</p>
       </div>
     );
   }
 
   return (
     <div className="card">
-      <h3>বিল ডেটা - আলাদা আলাদা সাবমিট</h3>
-      
+      <h3>BILL DATA INDIVIDUAL SUBMISSION</h3>
+
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8f9fa' }}>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>NO</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>AWB NO</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>EXTRA</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>SHIPPER</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>SHIPPER ADDRESS</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>CONSIGNEE</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>BIN/VAT</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>DEST</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>CNEE ADDRESS</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>CTC</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>TEL NO.</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>NOP</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>WT</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>VOL</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>DSCT</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>COD</th>
               <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>VAL</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>BIN/VAT</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>মূল্য</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>পরিমাণ</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>ডিসকাউন্ট (%)</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>মোট</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>রেজিস্টার</th>
-              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>অ্যাকশন</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>RE</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>BAG NO</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>PRICE</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>DISCOUNT  (%)</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>TOTAL</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>REGISTRATION</th>
+              <th style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'left' }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
@@ -309,27 +356,24 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
                 <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.id}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.awbNo || 'N/A'}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.extra || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.shipper || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.shipperAddress || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.customerName}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.binVat || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.dest || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.cneeAddress || 'N/A'}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.ctc || 'N/A'}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.telNo || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.nop || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.wt || 'N/A'}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.vol || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.product}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.cod || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.val || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.binVat || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.price} টাকা</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleQuantityChange(index, parseInt(e.target.value))}
-                      style={{ width: '60px', padding: '5px' }}
-                    />
-                  </td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.re || 'N/A'}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.bagNo || 'N/A'}</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.price} TK</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
                     <input
                       type="number"
@@ -340,10 +384,10 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
                       style={{ width: '60px', padding: '5px' }}
                     />
                   </td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.total.toFixed(2)} টাকা</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{item.total.toFixed(2)} TK</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
                     {isRegistered ? (
-                      <span style={{ color: 'green', fontWeight: 'bold' }}>রেজিস্টার্ড</span>
+                      <span style={{ color: 'green', fontWeight: 'bold' }}>REGISTERED</span>
                     ) : (
                       <button 
                         className="btn btn-info" 
@@ -355,7 +399,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
                           minWidth: '100px'
                         }}
                       >
-                        {registering[index] ? 'রেজিস্টার হচ্ছে...' : 'রেজিস্টার'}
+                        {registering[index] ? 'রেজিস্টার হচ্ছে...' : 'REGISTER'}
                       </button>
                     )}
                   </td>
@@ -367,10 +411,10 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
                       style={{ 
                         padding: '8px 12px', 
                         fontSize: '12px',
-                        minWidth: '80px'
-                      }}
-                    >
-                      {submittingSingle[index] ? 'জমা হচ্ছে...' : 'সাবমিট'}
+                          minWidth: '80px'
+                        }}
+                      >
+                      {submittingSingle[index] ? 'জমা হচ্ছে...' : 'SUBMIT'}
                     </button>
                   </td>
                 </tr>
@@ -379,8 +423,8 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
           </tbody>
           <tfoot>
             <tr style={{ backgroundColor: '#f8f9fa' }}>
-              <td colSpan="16" style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>মোট:</td>
-              <td style={{ padding: '12px', border: '1px solid #dee2e6', fontWeight: 'bold' }}>{grandTotal.toFixed(2)} টাকা</td>
+              <td colSpan="21" style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'right', fontWeight: 'bold' }}>মোট:</td>
+              <td style={{ padding: '12px', border: '1px solid #dee2e6', fontWeight: 'bold' }}>{grandTotal.toFixed(2)} TK</td>
               <td style={{ padding: '12px', border: '1px solid #dee2e6' }}></td>
               <td style={{ padding: '12px', border: '1px solid #dee2e6' }}></td>
             </tr>
@@ -395,7 +439,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
           disabled={!user || items.length === 0}
           style={{ padding: '10px 20px' }}
         >
-          সব বিল একসাথে সাবমিট করুন
+          SUBMIT ALL BILLS
         </button>
         
         {!user && (

@@ -56,8 +56,28 @@ const clientSchema = new mongoose.Schema({
   rateConfigurations: [{
     shipperAddressPattern: String,
     weight: Number,
-    rate: Number
-  }]
+    rate: Number,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// ইউনিক ইনডেক্স যোগ করুন যাতে একই নাম এবং ঠিকানা সহ ক্লায়েন্ট না তৈরি হয়
+clientSchema.index({ name: 1, address: 1 }, { 
+  unique: true,
+  collation: { locale: 'en', strength: 2 } // Case-insensitive comparison
+});
+
+// Update the updatedAt field before saving
+clientSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Client', clientSchema);
