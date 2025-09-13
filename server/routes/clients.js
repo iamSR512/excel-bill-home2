@@ -42,21 +42,33 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // সর্বশেষ ক্লায়েন্ট ID খুঁজে বের করুন
+    const lastClient = await Client.findOne().sort({ clientId: -1 });
+    let nextClientId = "IM001";
+    
+    if (lastClient && lastClient.clientId) {
+      // ClientId থেকে সংখ্যা部分 বের করুন
+      const idNumber = parseInt(lastClient.clientId.replace('IM', ''));
+      if (!isNaN(idNumber)) {
+        nextClientId = `IM${(idNumber + 1).toString().padStart(3, '0')}`;
+      }
+    }
+
     // Global Config নিন
     const globalConfig = await RateConfig.findOne().sort({ updatedAt: -1 });
 
     const client = new Client({
+      clientId: nextClientId,
       name: name.trim(),
       address: address.trim(),
       email: email || '',
       phone: phone || '',
       registeredBy,
-      ratePerKg: globalConfig?.ratePerKg ?? 0,
-      usdSurcharge: globalConfig?.usdSurcharge ?? 0,
       baseRate: globalConfig?.baseRate ?? 0,
       extraRatePerKg: globalConfig?.extraRatePerKg ?? 0,
       discountType: globalConfig?.discountType ?? 'percentage',
-      discountValue: globalConfig?.discountValue ?? 0
+      discountValue: globalConfig?.discountValue ?? 0,
+      clientType: 'REGULAR'
     });
 
     await client.save();
@@ -135,17 +147,17 @@ router.post('/check-duplicate', async (req, res) => {
 // Update client (Rate Config or other info)
 router.put('/:id', async (req, res) => {
   try {
-    const { ratePerKg, usdSurcharge, baseRate, extraRatePerKg, discountType, discountValue } = req.body;
+    const { baseRate, extraRatePerKg, discountType, discountValue, email, clientType } = req.body;
 
     const updatedClient = await Client.findByIdAndUpdate(
       req.params.id,
       { 
-        ratePerKg, 
-        usdSurcharge, 
         baseRate, 
         extraRatePerKg, 
         discountType, 
         discountValue,
+        email,
+        clientType,
         updatedAt: new Date()
       },
       { new: true, runValidators: true }
@@ -247,6 +259,29 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch client',
+      error: error.message
+    });
+  }
+});
+
+// Existing clients-কে clientId প্রদানের জন্য API
+router.post('/assign-client-ids', async (req, res) => {
+  try {
+    const clients = await Client.find().sort({ registrationDate: 1 });
+    
+    for (let i = 0; i < clients.length; i++) {
+      const clientId = `IM${(i + 1).toString().padStart(3, '0')}`;
+      await Client.findByIdAndUpdate(clients[i]._id, { clientId });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Client IDs assigned successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to assign client IDs',
       error: error.message
     });
   }

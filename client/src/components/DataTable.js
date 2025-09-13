@@ -72,7 +72,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
     console.log('Submitting single bill:', item);
     
     if (!user) {
-      alert('দয়া করে প্রথমে লগইন করুন');
+      alert('please login first');
       return;
     }
 
@@ -122,7 +122,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         body: JSON.stringify({
           customerName: item.customerName,
           customerEmail: `${item.customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
-          customerPhone: item.phone || '0000000000',
+          customerPhone: item.telNo || '0000000000', // Use telNo instead of phone
           items: [itemData],
           grandTotal: item.total
         })
@@ -131,18 +131,18 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       const data = await response.json();
       
       if (response.ok) {
-        alert(`${item.customerName}-এর বিল সফলভাবে জমা দেওয়া হয়েছে!`);
+        alert(`${item.customerName}-successfully submitted!`);
         
         // Remove the submitted item
         const newItems = items.filter((_, i) => i !== index);
         setItems(newItems);
         setGrandTotal(newItems.reduce((sum, item) => sum + item.total, 0));
       } else {
-        alert(data.message || 'বিল জমা দেওয়া ব্যর্থ হয়েছে');
+        alert(data.message || 'bill submission failed');
       }
     } catch (error) {
       console.error('Submission error:', error);
-      alert('বিল জমা দেওয়া ব্যর্থ হয়েছে: ' + error.message);
+      alert('bill submission failed: ' + error.message);
     } finally {
       setSubmittingSingle(prev => ({ ...prev, [index]: false }));
     }
@@ -151,12 +151,12 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
   // সম্পূর্ণ বিল সাবমিট
   const handleSubmitAll = async () => {
     if (items.length === 0) {
-      alert('কোনো ডেটা পাওয়া যায়নি');
+      alert('No data found');
       return;
     }
 
     if (!user) {
-      alert('দয়া করে প্রথমে লগইন করুন');
+      alert('please login first');
       return;
     }
 
@@ -213,30 +213,30 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       const data = await response.json();
       
       if (response.ok) {
-        alert('সমস্ত বিল সফলভাবে জমা দেওয়া হয়েছে!');
+        alert('all bills successfully submitted!');
         setItems([]);
         setGrandTotal(0);
       } else {
-        alert(data.message || 'বিল জমা দেওয়া ব্যর্থ হয়েছে');
+        alert(data.message || 'bill submission failed');
       }
     } catch (error) {
       console.error('Submission error:', error);
-      alert('বিল জমা দেওয়া ব্যর্থ হয়েছে: ' + error.message);
+      alert('bill submission failed: ' + error.message);
     }
   };
 
   // Register client function with duplicate check
   const handleRegisterClient = async (item, index) => {
     if (!user) {
-      alert('দয়া করে প্রথমে লগইন করুন');
+      alert('please login first');
       return;
     }
 
     const clientKey = `${item.customerName}-${item.cneeAddress}`;
     
-    // প্রথমে চেক করুন ক্লায়েন্ট ইতিমধ্যে রেজিস্টার্ড কি না
+    // Check if client is already registered
     if (registeredClients[clientKey]) {
-      alert('এই ক্লায়েন্ট ইতিমধ্যে রেজিস্টার্ড আছে');
+      alert('this client is already registered!');
       return;
     }
 
@@ -266,7 +266,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       const duplicateResult = await duplicateCheck.json();
       
       if (duplicateResult.isDuplicate) {
-        alert('এই নাম এবং ঠিকানা সহ একটি ক্লায়েন্ট ইতিমধ্যে存在 আছে!');
+        alert('this client with the same name and address already exists!');
         return;
       }
 
@@ -280,7 +280,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
           name: item.customerName,
           address: item.cneeAddress,
           email: `${item.customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
-          phone: item.phone || '0000000000',
+          phone: item.telNo || '0000000000', // Use telNo instead of phone
           registeredBy: user.id
         })
       });
@@ -288,17 +288,17 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       const data = await response.json();
       
       if (response.ok) {
-        alert(`${item.customerName}-কে সফলভাবে রেজিস্টার করা হয়েছে!`);
+        alert(`${item.customerName}-successfully registered!`);
         setRegisteredClients(prev => ({
           ...prev,
           [clientKey]: true
         }));
       } else {
-        alert(data.message || 'ক্লায়েন্ট রেজিস্ট্রেশন ব্যর্থ হয়েছে');
+        alert(data.message || 'client registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('ক্লায়েন্ট রেজিস্ট্রেশন ব্যর্থ হয়েছে: ' + error.message);
+      alert('client registration failed: ' + error.message);
     } finally {
       setRegistering(prev => ({ ...prev, [index]: false }));
     }
@@ -307,8 +307,8 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
   if (!items || items.length === 0) {
     return (
       <div className="card">
-        <h3>বিল ডেটা</h3>
-        <p>কোন ডেটা পাওয়া যায়নি। দয়া করে একটি এক্সেল ফাইল আপلোড করুন।</p>
+        <h3>Bill DATA</h3>
+        <p>No data found. Please upload an Excel file.</p>
       </div>
     );
   }
@@ -399,7 +399,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
                           minWidth: '100px'
                         }}
                       >
-                        {registering[index] ? 'রেজিস্টার হচ্ছে...' : 'REGISTER'}
+                        {registering[index] ? 'Registering...' : 'REGISTER'}
                       </button>
                     )}
                   </td>
@@ -443,7 +443,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         </button>
         
         {!user && (
-          <p style={{ color: 'red' }}>বিল জমা দিতে লগইন প্রয়োজন</p>
+          <p style={{ color: 'red' }}>Bill submission requires login</p>
         )}
       </div>
     </div>
@@ -451,3 +451,4 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
 };
 
 export default DataTable;
+

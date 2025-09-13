@@ -31,10 +31,10 @@ const Admin = () => {
         if (response.ok) {
           setBills(data.bills || data);
         } else {
-          setError(data.message || 'বিল ডেটা লোড করতে সমস্যা হয়েছে');
+          setError(data.message || 'Bills Data Loading Failed');
         }
       } catch (error) {
-        setError('বিল ডেটা লোড করতে সমস্যা হয়েছে');
+        setError('Bills Data Loading Failed');
         console.error('Bills fetch error:', error);
       } finally {
         setLoading(false);
@@ -59,15 +59,17 @@ const Admin = () => {
       const data = await response.json();
       
       if (response.ok) {
-        setBills(prev => prev.map(bill => 
+        // স্ট্যাটাস আপডেট করার পর বিলগুলি রিফ্রেশ করুন
+        const updatedBills = bills.map(bill => 
           bill._id === billId ? { ...bill, status: newStatus } : bill
-        ));
-        alert('বিল স্ট্যাটাস আপডেট করা হয়েছে');
+        );
+        setBills(updatedBills);
+        alert('Bill status updated successfully');
       } else {
-        alert(data.message || 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে');
+        alert(data.message || 'Failed to update status');
       }
     } catch (error) {
-      alert('স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে');
+      alert('Failed to update status');
       console.error('Status update error:', error);
     }
   };
@@ -80,9 +82,9 @@ const Admin = () => {
     return (
       <div className="container">
         <div className="card">
-          <h2>অ্যাক্সেস ডিনাইড</h2>
-          <p>আপনার অ্যাডমিন প্যানেল অ্যাক্সেস করার অনুমতি নেই।</p>
-          <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
+          <h2>Access Denied</h2>
+          <p>You do not have permission to access the admin panel.</p>
+          <button onClick={handleBack} className="btn btn-primary">Go Back to Home Page</button>
         </div>
       </div>
     );
@@ -92,8 +94,8 @@ const Admin = () => {
     return (
       <div className="container">
         <div className="card">
-          <h2>অ্যাডমিন প্যানেল</h2>
-          <p>লোড হচ্ছে...</p>
+          <h2>Admin Panel</h2>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -103,13 +105,13 @@ const Admin = () => {
     return (
       <div className="container">
         <div className="card">
-          <h2>অ্যাডমিন প্যানেল</h2>
+          <h2>Admin Panel</h2>
           <p style={{ color: 'red' }}>{error}</p>
           <button onClick={() => window.location.reload()} className="btn btn-primary">
-            রিফ্রেশ করুন
+            Refresh
           </button>
           <button onClick={handleBack} className="btn btn-secondary" style={{ marginLeft: '10px' }}>
-            হোম পেজে ফিরে যান
+            Go Back to Home Page
           </button>
         </div>
       </div>
@@ -119,8 +121,13 @@ const Admin = () => {
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>অ্যাডমিন প্যানেল</h1>
-        <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
+        <h1>Admin Panel</h1>
+        <div>
+          <button onClick={() => window.location.reload()} className="btn btn-secondary" style={{ marginRight: '10px' }}>
+            Refresh
+          </button>
+          <button onClick={handleBack} className="btn btn-primary">Go Back to Home Page</button>
+        </div>
       </div>
       
       {/* AdminPanel কম্পোনেন্ট ব্যবহার করুন */}

@@ -88,10 +88,10 @@ const RateConfigModal = ({ isOpen, onClose }) => {
           overflowY: "auto",
         }}
       >
-        <h3>⚙️ গ্লোবাল রেট কনফিগারেশন</h3>
+        <h3>⚙️ GLOBAL RATE CONFIGURATION</h3>
 
         <div style={{ marginBottom: "15px" }}>
-          <label>প্রতি কেজি রেট:</label>
+          <label>Rate per KG:</label>
           <input
             type="number"
             value={ratePerKg}
@@ -101,7 +101,7 @@ const RateConfigModal = ({ isOpen, onClose }) => {
         </div>
 
         <div style={{ marginBottom: "15px" }}>
-          <label>USD সারচার্জ:</label>
+          <label>USD Surcharge:</label>
           <input
             type="number"
             value={usdSurcharge}
@@ -110,10 +110,10 @@ const RateConfigModal = ({ isOpen, onClose }) => {
           />
         </div>
 
-        <h4 style={{ marginTop: "20px", marginBottom: "10px" }}>টায়ার্ড প্রাইসিং কনফিগারেশন</h4>
-        
+        <h4 style={{ marginTop: "20px", marginBottom: "10px" }}>TIRED PRICING CONFIGURATION</h4>
+
         <div style={{ marginBottom: "15px" }}>
-          <label>বেস রেট (প্রথম ১ কেজির জন্য):</label>
+          <label>Base Rate (for the first 1 KG):</label>
           <input
             type="number"
             value={baseRate}
@@ -123,7 +123,7 @@ const RateConfigModal = ({ isOpen, onClose }) => {
         </div>
 
         <div style={{ marginBottom: "15px" }}>
-          <label>অতিরিক্ত রেট (১ কেজির পরের জন্য):</label>
+          <label>Over Rate (Over 1 KG):</label>
           <input
             type="number"
             value={extraRatePerKg}
@@ -132,22 +132,22 @@ const RateConfigModal = ({ isOpen, onClose }) => {
           />
         </div>
 
-        <h4 style={{ marginTop: "20px", marginBottom: "10px" }}>গ্লোবাল ডিসকাউন্ট কনফিগারেশন</h4>
-        
+        <h4 style={{ marginTop: "20px", marginBottom: "10px" }}>GLOBAL DISCOUNT CONFIGURATION</h4>
+
         <div style={{ marginBottom: "15px" }}>
-          <label>ডিসকাউন্ট ধরণ:</label>
+          <label>Discount Type:</label>
           <select
             value={discountType}
             onChange={(e) => setDiscountType(e.target.value)}
             style={{ width: "100%", padding: "8px", marginTop: "5px" }}
           >
-            <option value="percentage">শতকরা (%)</option>
-            <option value="fixed">নির্দিষ্ট Amount</option>
+            <option value="percentage">Percentage (%)</option>
+            <option value="fixed">Fixed Amount</option>
           </select>
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <label>ডিসকাউন্ট মান:</label>
+          <label>Discount Value:</label>
           <input
             type="number"
             value={discountValue}
@@ -164,7 +164,7 @@ const RateConfigModal = ({ isOpen, onClose }) => {
               onChange={(e) => setUpdateAllClients(e.target.checked)}
               style={{ marginRight: "10px" }}
             />
-            সব ক্লাইন্ট আপডেট করুন (Existing সব ক্লাইন্টের রেট পরিবর্তন হবে)
+            Update For All Clients (Existing clients' rates will be updated)
           </label>
         </div>
 
@@ -181,7 +181,7 @@ const RateConfigModal = ({ isOpen, onClose }) => {
             }}
             onClick={onClose}
           >
-            বাতিল
+            END
           </button>
           <button 
             style={{ 
@@ -194,7 +194,7 @@ const RateConfigModal = ({ isOpen, onClose }) => {
             }}
             onClick={saveRateConfig}
           >
-            সংরক্ষণ করুন
+            SAVE
           </button>
         </div>
       </div>

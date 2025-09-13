@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
-
 const clientSchema = new mongoose.Schema({
+  clientId: {
+    type: String,
+    unique: true,
+    required: true,
+    default: 'IM001' // ডিফল্ট ভ্যালু
+  },
   name: {
     type: String,
     required: true,
@@ -28,14 +33,6 @@ const clientSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  ratePerKg: {
-    type: Number,
-    default: 0
-  },
-  usdSurcharge: {
-    type: Number,
-    default: 0
-  },
   baseRate: {
     type: Number,
     default: 0
@@ -52,6 +49,11 @@ const clientSchema = new mongoose.Schema({
   discountValue: {
     type: Number,
     default: 0
+  },
+  clientType: {
+    type: String,
+    enum: ['VIP', 'NEW', 'REGULAR'],
+    default: 'REGULAR'
   },
   rateConfigurations: [{
     shipperAddressPattern: String,

@@ -13,7 +13,7 @@ const Home = () => {
 
   return (
     <div className="container">
-      <h1>এক্সেল বিল ম্যানেজমেন্ট সিস্টেম</h1>
+      <h1>BILL MANAGEMENT SYSTEM</h1>
       <FileUpload onDataProcessed={handleDataProcessed} />
       {tableData && <DataTable items={tableData} grandTotal={grandTotal} />}
     </div>

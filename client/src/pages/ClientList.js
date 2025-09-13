@@ -10,14 +10,17 @@ const ClientList = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [globalModal, setGlobalModal] = useState(false);
   const [duplicateClients, setDuplicateClients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingEmail, setEditingEmail] = useState(null);
+  const [emailValue, setEmailValue] = useState("");
 
   // Rate config form state
   const [ratePerKg, setRatePerKg] = useState("");
-  const [usdSurcharge, setUsdSurcharge] = useState("");
   const [baseRate, setBaseRate] = useState("");
   const [extraRatePerKg, setExtraRatePerKg] = useState("");
   const [discountType, setDiscountType] = useState("percentage");
   const [discountValue, setDiscountValue] = useState("");
+  const [clientType, setClientType] = useState("REGULAR");
 
   useEffect(() => {
     fetchClients();
@@ -46,13 +49,35 @@ const ClientList = () => {
     }
   };
 
+  // সার্চ ফিল্টার - নিরাপদ ভার্সন
+  const filteredClients = clients.filter(client => {
+    if (!searchTerm) return true;
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    // সব ফিল্ডকে স্ট্রিংয়ে কনভার্ট করুন এবং null/undefined হ্যান্ডেল করুন
+    const fieldsToSearch = [
+      client.name || '',
+      client.address || '',
+      client.clientId || '',
+      client.email || '',
+      client.phone || '',
+      client.registeredBy?.name || '',
+      client.registeredBy?.email || ''
+    ];
+    
+    return fieldsToSearch.some(field => 
+      field.toLowerCase().includes(searchTermLower)
+    );
+  });
+
   // ডুপ্লিকেট ক্লায়েন্ট খুঁজে বের করার ফাংশন
   const findDuplicateClients = (clientsData) => {
     const nameMap = {};
     const duplicates = [];
     
     clientsData.forEach(client => {
-      const key = `${client.name.toLowerCase().trim()}`;
+      const key = `${client.name || ''}-${client.address || ''}`.toLowerCase().trim();
       
       if (nameMap[key]) {
         duplicates.push(client);
@@ -78,18 +103,44 @@ const ClientList = () => {
     }
   };
 
-  // ক্লায়েন্ট রেজিস্ট্রেশনের সময় ডুপ্লিকেট চেক করার ফাংশন
-  const checkDuplicateBeforeRegister = async (name, address) => {
+  // ইমেইল এডিট মোড চালু করুন
+  const handleEditEmail = (client) => {
+    setEditingEmail(client._id);
+    setEmailValue(client.email);
+  };
+
+  // ইমেইল সেভ করুন
+  const handleSaveEmail = async (clientId) => {
     try {
-      const res = await axios.post("/api/clients/check-duplicate", {
-        name: name.trim().toLowerCase(),
-        address: address.trim().toLowerCase()
+      const res = await axios.put(`/api/clients/${clientId}`, {
+        email: emailValue
       });
       
-      return res.data.isDuplicate;
+      if (res.data.success) {
+        alert("ইমেইল সফলভাবে আপডেট করা হয়েছে!");
+        setEditingEmail(null);
+        fetchClients();
+      }
     } catch (err) {
-      console.error("Duplicate check error:", err);
-      return false;
+      console.error("Email update error:", err);
+      alert("ইমেইল আপডেট করতে সমস্যা হয়েছে");
+    }
+  };
+
+  // ক্লায়েন্ট টাইপ আপডেট করুন
+  const handleClientTypeChange = async (clientId, newType) => {
+    try {
+      const res = await axios.put(`/api/clients/${clientId}`, {
+        clientType: newType
+      });
+      
+      if (res.data.success) {
+        alert("ক্লায়েন্ট টাইপ সফলভাবে আপডেট করা হয়েছে!");
+        fetchClients();
+      }
+    } catch (err) {
+      console.error("Client type update error:", err);
+      alert("ক্লায়েন্ট টাইপ আপডেট করতে সমস্যা হয়েছে");
     }
   };
 
@@ -97,12 +148,11 @@ const ClientList = () => {
     if (!selectedClient) return;
     try {
       const res = await axios.put(`/api/clients/${selectedClient._id}`, {
-        ratePerKg: ratePerKg === "" ? null : Number(ratePerKg),
-        usdSurcharge: usdSurcharge === "" ? null : Number(usdSurcharge),
         baseRate: baseRate === "" ? null : Number(baseRate),
         extraRatePerKg: extraRatePerKg === "" ? null : Number(extraRatePerKg),
         discountType: discountType,
         discountValue: discountValue === "" ? 0 : Number(discountValue),
+        clientType: clientType
       });
       if (res.data.success) {
         alert("Rate configuration updated!");
@@ -115,18 +165,29 @@ const ClientList = () => {
     }
   };
 
-  if (loading) return <p>Loading clients...</p>;
+ if (loading) return <p>Loading clients...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2>Client List</h2>
+      <h2>Client Profile List</h2>
+
+      {/* সার্চ বার */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Search by name, address, client ID, email or phone..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: "100%", padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
+        />
+      </div>
 
       {/* ডুপ্লিকেট ক্লায়েন্ট সেকশন */}
       {duplicateClients.length > 0 && (
         <div style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#fff3cd", border: "1px solid #ffeaa7" }}>
-          <h3 style={{ color: "#856404" }}>ডুপ্লিকেট ক্লায়েন্ট সনাক্তকরণ</h3>
-          <p>নিম্নলিখিত {duplicateClients.length}টি ডুপ্লিকেট ক্লায়েন্ট পাওয়া গেছে:</p>
+          <h3 style={{ color: "#856404" }}>DUPLICATE CLIENTS FOUND</h3>
+          <p>WRITTEN BELOW {duplicateClients.length} DUPLICATE CLIENTS FOUND:</p>
           <ul>
             {duplicateClients.map(client => (
               <li key={client._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -135,7 +196,7 @@ const ClientList = () => {
                   onClick={() => handleDeleteDuplicate(client._id)}
                   style={{ padding: "5px 10px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}
                 >
-                  মুছুন
+                  Delete
                 </button>
               </li>
             ))}
@@ -157,31 +218,60 @@ const ClientList = () => {
       >
         <thead>
           <tr>
+            <th>Client ID</th>
             <th>Name</th>
             <th>Address</th>
             <th>Email</th>
             <th>Phone</th>
             <th>Registered By</th>
-            <th>Rate Per KG</th>
-            <th>USD Surcharge</th>
+            <th>Date & Time</th>
             <th>Base Rate</th>
             <th>Extra Rate/Kg</th>
             <th>Discount</th>
+            <th>Client Type</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {clients.map((client) => (
+          {filteredClients.map((client) => (
             <tr key={client._id}>
+              <td>{client.clientId}</td>
               <td>{client.name}</td>
               <td>{client.address}</td>
-              <td>{client.email}</td>
+              <td>
+                {editingEmail === client._id ? (
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <input
+                      type="email"
+                      value={emailValue}
+                      onChange={(e) => setEmailValue(e.target.value)}
+                      style={{ width: "150px", marginRight: "5px" }}
+                    />
+                    <button 
+                      onClick={() => handleSaveEmail(client._id)}
+                      style={{ marginRight: "5px" }}
+                    >
+                      Save
+                    </button>
+                    <button onClick={() => setEditingEmail(null)}>Cancel</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{client.email}</span>
+                    <button 
+                      onClick={() => handleEditEmail(client)}
+                      style={{ marginLeft: "10px" }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
+              </td>
               <td>{client.phone}</td>
               <td>
                 {client.registeredBy?.name} ({client.registeredBy?.email})
               </td>
-              <td>{client.ratePerKg ?? "-"}</td>
-              <td>{client.usdSurcharge ?? "-"}</td>
+              <td>{new Date(client.registrationDate).toLocaleString()}</td>
               <td>{client.baseRate ?? "-"}</td>
               <td>{client.extraRatePerKg ?? "-"}</td>
               <td>
@@ -191,15 +281,24 @@ const ClientList = () => {
                 }
               </td>
               <td>
+                <select
+                  value={client.clientType || "REGULAR"}
+                  onChange={(e) => handleClientTypeChange(client._id, e.target.value)}
+                >
+                  <option value="VIP">VIP</option>
+                  <option value="NEW">NEW</option>
+                  <option value="REGULAR">REGULAR</option>
+                </select>
+              </td>
+              <td>
                 <button
                   onClick={() => {
                     setSelectedClient(client);
-                    setRatePerKg(client.ratePerKg ?? "");
-                    setUsdSurcharge(client.usdSurcharge ?? "");
                     setBaseRate(client.baseRate ?? "");
                     setExtraRatePerKg(client.extraRatePerKg ?? "");
                     setDiscountType(client.discountType ?? "percentage");
                     setDiscountValue(client.discountValue ?? "");
+                    setClientType(client.clientType ?? "REGULAR");
                     setShowProfileModal(true);
                   }}
                 >
@@ -239,6 +338,9 @@ const ClientList = () => {
           >
             <h3>{selectedClient.name} - Profile</h3>
             <p>
+              <strong>Client ID:</strong> {selectedClient.clientId}
+            </p>
+            <p>
               <strong>Address:</strong> {selectedClient.address}
             </p>
             <p>
@@ -252,33 +354,16 @@ const ClientList = () => {
               {selectedClient.registeredBy?.name} (
               {selectedClient.registeredBy?.email})
             </p>
+            <p>
+              <strong>Registration Date:</strong>{" "}
+              {new Date(selectedClient.registrationDate).toLocaleString()}
+            </p>
 
             <h4>Rate Configuration</h4>
             
-            {/* পুরানো রেট কনফিগারেশন */}
-            <div style={{ marginBottom: "10px" }}>
-              <label>Rate per KG: </label>
-              <input
-                type="number"
-                value={ratePerKg}
-                onChange={(e) => setRatePerKg(e.target.value)}
-                placeholder="Enter rate"
-              />
-            </div>
-            <div style={{ marginBottom: "10px" }}>
-              <label>USD Surcharge: </label>
-              <input
-                type="number"
-                value={usdSurcharge}
-                onChange={(e) => setUsdSurcharge(e.target.value)}
-                placeholder="Enter surcharge"
-              />
-            </div>
-            
             {/* নতুন টায়ার্ড প্রাইসিং কনফিগারেশন */}
-            <h4 style={{ marginTop: "20px" }}>Tiered Pricing Configuration</h4>
             <div style={{ marginBottom: "10px" }}>
-              <label>Base Rate (প্রথম ১ কেজির জন্য): </label>
+              <label>Base Rate (For 1st KG): </label>
               <input
                 type="number"
                 value={baseRate}
@@ -287,7 +372,7 @@ const ClientList = () => {
               />
             </div>
             <div style={{ marginBottom: "20px" }}>
-              <label>Extra Rate per Kg (১ কেজির পরের জন্য): </label>
+              <label>Extra Rate per Kg (For Over 1 KG): </label>
               <input
                 type="number"
                 value={extraRatePerKg}
@@ -316,6 +401,19 @@ const ClientList = () => {
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder="Enter discount value"
               />
+            </div>
+
+            {/* ক্লায়েন্ট টাইপ কনফিগারেশন */}
+            <h4 style={{ marginTop: "20px" }}>Client Type</h4>
+            <div style={{ marginBottom: "20px" }}>
+              <select
+                value={clientType}
+                onChange={(e) => setClientType(e.target.value)}
+              >
+                <option value="VIP">VIP</option>
+                <option value="NEW">NEW</option>
+                <option value="REGULAR">REGULAR</option>
+              </select>
             </div>
 
             <button onClick={handleSaveRates} style={{ marginRight: "10px", marginTop: "20px" }}>

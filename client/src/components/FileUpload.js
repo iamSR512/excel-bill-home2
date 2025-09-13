@@ -21,7 +21,7 @@ const FileUpload = ({ onDataProcessed }) => {
       } catch (error) {
         console.error("Error parsing saved data:", error);
         localStorage.removeItem("processedExcelData");
-        setError("সংরক্ষিত ডেটা লোড করতে সমস্যা হয়েছে");
+        setError("Failed to load saved data");
       }
     }
   }, [onDataProcessed]);
@@ -84,7 +84,7 @@ const FileUpload = ({ onDataProcessed }) => {
       }
     } catch (err) {
       console.error("Rate fetch error:", err);
-      setError(`রেট নিয়োগ করতে সমস্যা: ${err.message}`);
+      setError(`Failed to fetch rate: ${err.message}`);
     }
     
     // Fallback to default values
@@ -125,7 +125,7 @@ const FileUpload = ({ onDataProcessed }) => {
           const items = [];
 
           if (!jsonData || jsonData.length === 0) {
-            throw new Error("Excel ফাইল খালি বা ফরম্যাট সঠিক নয়।");
+            throw new Error("Excel file is empty or improperly formatted.");
           }
 
           let startRow = 0;
@@ -247,7 +247,7 @@ const FileUpload = ({ onDataProcessed }) => {
           }
 
           if (items.length === 0) {
-            throw new Error("ফাইলে কোনো valid ডেটা পাওয়া যায়নি।");
+            throw new Error("File processed but no valid data rows found.");
           }
 
           const grandTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -259,7 +259,7 @@ const FileUpload = ({ onDataProcessed }) => {
       };
 
       reader.onerror = (error) => {
-        reject(new Error("ফাইল পড়তে সমস্যা হয়েছে: " + error.message));
+        reject(new Error("Error reading file: " + error.message));
       };
       reader.readAsArrayBuffer(file);
     });
@@ -267,7 +267,7 @@ const FileUpload = ({ onDataProcessed }) => {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError("দয়া করে একটি ফাইল নির্বাচন করুন");
+      setError("Please select a file");
       return;
     }
 
@@ -278,7 +278,7 @@ const FileUpload = ({ onDataProcessed }) => {
       const result = await processExcelFile(selectedFile);
 
       if (result.items.length === 0) {
-        setError("কোনো valid ডেটা পাওয়া যায়নি।");
+        setError("No valid data found.");
         return;
       }
 
@@ -287,11 +287,11 @@ const FileUpload = ({ onDataProcessed }) => {
 
       onDataProcessed(result.items, result.grandTotal, result.totalDiscount || 0);
       alert(
-        `ফাইল সফলভাবে প্রসেস হয়েছে! ${result.items.length} টি আইটেম পাওয়া গেছে। মোট ডিসকাউন্ট: ${(result.totalDiscount || 0).toFixed(2)}`
+        `File processed successfully! ${result.items.length} items found. Total Discount: ${(result.totalDiscount || 0).toFixed(2)}`
       );
     } catch (error) {
       console.error("File processing error:", error);
-      setError("ফাইল প্রসেসিং ব্যর্থ: " + error.message);
+      setError("File processing failed: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -305,15 +305,15 @@ const FileUpload = ({ onDataProcessed }) => {
     if (onDataProcessed) {
       onDataProcessed([], 0, 0);
     }
-    alert("ডেটা সাফ করা হয়েছে।");
+    alert("Data cleared.");
   };
 
   return (
     <div className="card">
-      <h3>এক্সেল ফাইল আপলোড</h3>
+      <h3 style={{ fontWeight: "bold" }}>Upload Excel File</h3>
 
       {error && (
-        <div className="alert alert-error" style={{color: "#721c24", backgroundColor: "#f8d7da", borderColor: "#f5c6cb", padding: "10px", borderRadius: "5px", marginBottom: "15px"}}>
+        <div className="alert alert-error" style={{color: "#721c24", backgroundColor: "#f8d7da", borderColor: "#f5c6cb", padding: "10px", borderRadius: "5px", marginBottom: "15px", fontWeight: "bold"}}>
           {error}
         </div>
       )}
@@ -325,24 +325,25 @@ const FileUpload = ({ onDataProcessed }) => {
             padding: "10px",
             backgroundColor: "#e7f4e4",
             borderRadius: "5px",
+            fontWeight: "bold"
           }}
         >
-          <h4>✅ প্রসেস করা ডেটা সংরক্ষিত আছে</h4>
-          <p>মোট আইটেম: {processedData.items.length}টি</p>
-          <p>মোট মূল্য: {(processedData.grandTotal || 0).toFixed(2)}</p>
-          <p>মোট ডিসকাউন্ট: {(processedData.totalDiscount || 0).toFixed(2)}</p>
+          <h4 style={{ fontWeight: "bold" }}>✅ Processed data saved</h4>
+          <p>Total items: {processedData.items.length}</p>
+          <p>Total amount: {(processedData.grandTotal || 0).toFixed(2)}</p>
+          <p>Total discount: {(processedData.totalDiscount || 0).toFixed(2)}</p>
           <button
             className="btn btn-secondary"
             onClick={clearData}
-            style={{ marginTop: "10px" }}
+            style={{ marginTop: "10px", fontWeight: "bold" }}
           >
-            ডেটা সাফ করুন
+            Clear Data
           </button>
         </div>
       )}
 
-      <div className="form-group">
-        <label>এক্সেল ফাইল নির্বাচন করুন (.xlsx, .xls, .csv):</label>
+      <div className="form-group" style={{ fontWeight: "bold" }}>
+        <label>Upload Excel File (.xlsx, .xls, .csv):</label>
         <input
           type="file"
           accept=".xlsx, .xls, .csv"
@@ -352,9 +353,9 @@ const FileUpload = ({ onDataProcessed }) => {
       </div>
 
       {selectedFile && (
-        <div>
-          <p>নির্বাচিত ফাইল: {selectedFile.name}</p>
-          <p>ফাইলের সাইজ: {(selectedFile.size / 1024).toFixed(2)} KB</p>
+        <div style={{ fontWeight: "bold" }}>
+          <p>Selected file: {selectedFile.name}</p>
+          <p>File size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
         </div>
       )}
 
@@ -362,9 +363,9 @@ const FileUpload = ({ onDataProcessed }) => {
         className="btn btn-primary"
         onClick={handleUpload}
         disabled={!selectedFile || uploading}
-        style={{ marginRight: "10px" }}
+        style={{ marginRight: "10px", fontWeight: "bold" }}
       >
-        {uploading ? "প্রসেস হচ্ছে..." : "ফাইল প্রসেস করুন"}
+        {uploading ? "Processing..." : "Process File"}
       </button>
 
       <div
@@ -373,52 +374,53 @@ const FileUpload = ({ onDataProcessed }) => {
           padding: "10px",
           backgroundColor: "#f8f9fa",
           borderRadius: "5px",
+          fontWeight: "bold"
         }}  
       >
-        <h4>ফাইল format নির্দেশিকা:</h4>
+        <h4 style={{ fontWeight: "bold" }}>File format guidelines:</h4>
         <ul>
-          <li>কলাম A: NO</li>
-          <li>কলাম B: AWB NO</li>
-          <li>কলাম C: EXTRA</li>
-          <li>কলাম D: SHIPPER</li>
-          <li>কলাম E: SHIPPER ADDRESS</li>
-          <li>কলাম F: CONSIGNEE (গ্রাহকের নাম)</li>
-          <li>কলাম G: BIN/VAT</li>
-          <li>কলাম H: DEST</li>
-          <li>কলাম I: CNEE ADDRESS</li>
-          <li>কলাম J: CTC</li>
-          <li>কলাম K: TEL NO.</li>
-          <li>কলাম L: NOP</li>
-          <li>কলাম M: WT</li>
-          <li>কলাম N: VOL</li>
-          <li>কলাম O: DSCT</li>
-          <li>কলাম P: COD</li>
-          <li>কলাম Q: VAL</li>
-          <li>কলাম R: RE</li>
-          <li>কলাম S: BAG NO</li>
-          <li>👉 "মূল্য" কলাম Config অনুযায়ী স্বয়ংক্রিয়ভাবে যুক্ত হবে</li>
+          <li>Column A: NO</li>
+          <li>Column B: AWB NO</li>
+          <li>Column C: EXTRA</li>
+          <li>Column D: SHIPPER</li>
+          <li>Column E: SHIPPER ADDRESS</li>
+          <li>Column F: CONSIGNEE (Consignee Name)</li>
+          <li>Column G: BIN/VAT</li>
+          <li>Column H: DEST</li>
+          <li>Column I: CNEE ADDRESS</li>
+          <li>Column J: CTC</li>
+          <li>Column K: TEL NO.</li>
+          <li>Column L: NOP</li>
+          <li>Column M: WT</li>
+          <li>Column N: VOL</li>
+          <li>Column O: DSCT</li>
+          <li>Column P: COD</li>
+          <li>Column Q: VAL</li>
+          <li>Column R: RE</li>
+          <li>Column S: BAG NO</li>
+          <li>👉 "PRICE" column will be automatically populated based on Config</li>
         </ul>
 
-        <h4 style={{ marginTop: "15px", color: "#007bff" }}>মূল্য হিসাব পদ্ধতি:</h4>
+        <h4 style={{ marginTop: "15px", color: "#007bff", fontWeight: "bold" }}>Pricing Calculation Method:</h4>
         <p style={{ color: "#dc3545", fontWeight: "bold" }}>
-          নতুন প্রাইসিং মডেল: প্রথম ১ কেজি Base Rate, তারপর Extra Rate (যদি না থাকে তবে Base Rate)
+          New pricing model: First 1 kg Base Rate, then Extra Rate (if not available, then Base Rate)
         </p>
-        <p>✅ উদাহরণ: WT = 0.5 → মূল্য = Base Rate (500)</p>
-        <p>✅ উদাহরণ: WT = 1 → মূল্য = Base Rate (500)</p>
-        <p>✅ উদাহরণ: WT = 2 → মূল্য = 500 + (2-1) × 400 = 900</p>
-        <p>✅ উদাহরণ: WT = 3 → মূল্য = 500 + (3-1) × 400 = 1300</p>
-        <p>✅ উদাহরণ: WT = 2, Extra Rate না থাকলে → মূল্য = 500 + (2-1) × 500 = 1000</p>
-        
+        <p>✅ Example: WT = 0.5 → Price = Base Rate (500)</p>
+        <p>✅ Example: WT = 1 → Price = Base Rate (500)</p>
+        <p>✅ Example: WT = 2 → Price = 500 + (2-1) × 400 = 900</p>
+        <p>✅ Example: WT = 3 → Price = 500 + (3-1) × 400 = 1300</p>
+        <p>✅ Example: WT = 2, if Extra Rate is not available → Price = 500 + (2-1) × 500 = 1000</p>
+
         <p style={{ color: "#28a745", fontWeight: "bold", marginTop: "15px" }}>
-          ডিসকাউন্ট সিস্টেম:
+          Discount System:
         </p>
-        <p>✅ শতকরা ডিসকাউন্ট: মূল্য থেকে X% কাটা হবে</p>
-        <p>✅ ফিক্সড ডিসকাউন্ট: মূল্য থেকে X টাকা কাটা হবে</p>
-        <p>✅ উদাহরণ: মূল্য 800, 50% ডিসকাউন্ট → চূড়ান্ত মূল্য: 400</p>
-        
-        <p style={{ color: "#6c757d", fontStyle: "italic", marginTop: "15px" }}>
-          Note: প্রথমে ক্লাইন্ট-স্পেসিফিক রেট ব্যবহার করা হবে। যদি না থাকে, তাহলে গ্লোবাল রেট কনফিগারেশন ব্যবহার করা হবে।
-          যদি কোনো রেট না থাকে, তাহলে ডিফল্ট রেট (100 টাকা/কেজি) ব্যবহার করা হবে।
+        <p>✅ Percentage Discount: X% will be deducted from the Price</p>
+        <p>✅ Fixed Discount: X TK will be deducted from the Price</p>
+        <p>✅ Example: Price 800, 50% Discount → Final Price: 400</p>
+
+        <p style={{ color: "#6c757d", fontStyle: "italic", marginTop: "15px", fontWeight: "bold" }}>
+          Note: Client-specific rates will be used first. If not available, global rate configuration will be used.
+          If no rate is available, the default rate (100 TK/kg) will be used.
         </p>
       </div>
     </div>

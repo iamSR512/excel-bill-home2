@@ -1,14 +1,20 @@
 import React from 'react';
 
 const AdminPanel = ({ bills, onStatusChange }) => {
+  // বিলগুলিকে উল্টো ক্রমে সাজান (নতুন থেকে পুরানো)
+  const reversedBills = [...bills].reverse();
+  
+  // মোট Amount গণনা করুন
+  const totalAmount = reversedBills.reduce((sum, bill) => sum + (bill.grandTotal || 0), 0);
+
   return (
     <div className="card">
-      <h3>বিল ম্যানেজমেন্ট - সম্পূর্ণ ডেটা</h3>
+      <h3>BILLS MANAGEMENT</h3>
       
-      {bills.length === 0 ? (
+      {reversedBills.length === 0 ? (
         <div>
-          <p>কোন বিল পাওয়া যায়নি</p>
-          <p>বিল দেখতে হলে প্রথমে ব্যবহারকারীরা বিল সাবমিট করতে হবে।</p>
+          <p>No bills found</p>
+          <p>To view bills, users must first submit bills.</p>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -28,18 +34,18 @@ const AdminPanel = ({ bills, onStatusChange }) => {
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>COD</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>VAL</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>BIN/VAT</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>মূল্য</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>পরিমাণ</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>ডিসকাউন্ট (%)</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>মোট Amount</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>জমাদানকারী</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>তারিখ</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>স্ট্যাটাস</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>অ্যাকশন</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>PRICE</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>QTY</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>DISCOUNT (%)</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>TOTAL AMOUNT</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>SUBMITTED BY</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>DATE</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>STATUS</th>
+                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
-              {bills.map(bill => (
+              {reversedBills.map(bill => (
                 <tr key={bill._id}>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.id || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.awbNo || 'N/A'}</td>
@@ -54,10 +60,10 @@ const AdminPanel = ({ bills, onStatusChange }) => {
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.cod || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.val || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.binVat || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.price || 0} টাকা</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.price || 0} TK</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.quantity || 1}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items[0]?.discount || 0}%</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.grandTotal} টাকা</td>
+                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.grandTotal} TK</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.submittedBy?.name || 'Unknown'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{new Date(bill.submissionDate).toLocaleDateString()}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
@@ -88,6 +94,17 @@ const AdminPanel = ({ bills, onStatusChange }) => {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr style={{ backgroundColor: '#e9ecef', fontWeight: 'bold' }}>
+                <td colSpan="15" style={{ padding: '12px', border: '1px solid #dee2e6', textAlign: 'right' }}>
+                  Total Balance:
+                </td>
+                <td style={{ padding: '12px', border: '1px solid #30cbe6ff' }}>
+                  {totalAmount.toFixed(2)} TK
+                </td>
+                <td colSpan="4" style={{ padding: '12px', border: '1px solid #dee2e6' }}></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
