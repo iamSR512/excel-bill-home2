@@ -12,20 +12,46 @@ const app = express();
 const Client = require('./models/Client');
 require('dotenv').config();
 
-app.use(cors());
-app.use(express.json());
+// CORS কনফিগারেশন - প্রোডাকশন রেডি
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://your-vercel-app.vercel.app' // আপনার ভেরসেল অ্যাপের URL এখানে দিন
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// রাউটস
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/clients', clientRoutes);
 app.use('/api/rate-config', require('./routes/rateConfig'));
 
-// MongoDB connection - Atlas cluster ব্যবহার করুন
-const MONGODB_URI = 'mongodb+srv://mern:gpGPSjUAqIaazWFi@cluster7.gynar.mongodb.net/excel-bill-management?retryWrites=true&w=majority&appName=Cluster7';
+// MongoDB connection - .env থেকে নিন
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mern:gpGPSjUAqIaazWFi@cluster7.gynar.mongodb.net/excel-bill-management?retryWrites=true&w=majority&appName=Cluster7';
 
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => console.log('MongoDB Atlas Connected Successfully'))
-.catch(err => console.error('MongoDB Connection Error:', err));
+.catch(err => {
+  console.error('MongoDB Connection Error:', err);
+  process.exit(1);
+});
 
 // User Model
 const UserSchema = new mongoose.Schema({
@@ -39,7 +65,7 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-// Bill Model - সম্পূর্ণ আপডেট করা হয়েছে
+// Bill Model
 const BillSchema = new mongoose.Schema({
   customerName: String,
   customerEmail: String,
@@ -70,19 +96,8 @@ const BillSchema = new mongoose.Schema({
 
 const Bill = mongoose.model('Bill', BillSchema);
 
-// Multer configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    if (!fs.existsSync('uploads')) {
-      fs.mkdirSync('uploads');
-    }
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-
+// Multer configuration - Memory storage ব্যবহার করুন
+const storage = multer.memoryStorage();
 const upload = multer({ 
   storage: storage,
   fileFilter: function (req, file, cb) {
@@ -95,6 +110,9 @@ const upload = multer({
     } else {
       cb(new Error('শুধুমাত্র এক্সেল ফাইল অনুমোদিত'));
     }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
   }
 });
 
@@ -106,7 +124,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication token missing' });
     }
     
-    const decoded = jwt.verify(token, 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
     const user = await User.findById(decoded.userId);
     if (!user) throw new Error();
     req.user = user;
@@ -124,8 +142,6 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-// Routes
-
 // User registration
 app.post('/api/register', async (req, res) => {
   try {
@@ -141,7 +157,7 @@ app.post('/api/register', async (req, res) => {
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
     
-    const token = jwt.sign({ userId: user._id }, 'your-secret-key');
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret-key');
     res.status(201).json({ 
       success: true,
       message: 'Registration successful',
@@ -179,7 +195,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    const token = jwt.sign({ userId: user._id }, 'your-secret-key');
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret-key');
      console.log('Login successful for user:', {
       id: user._id,
       name: user.name,
@@ -217,46 +233,28 @@ app.post('/api/upload', auth, upload.single('excelFile'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const workbook = xlsx.readFile(req.file.path);
+    // Buffer থেকে workbook পড়ুন
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    
-    // Debugging: headers দেখুন
-    const range = xlsx.utils.decode_range(worksheet['!ref']);
-    let headers = [];
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = { c: C, r: range.s.r };
-      const cellRef = xlsx.utils.encode_cell(cellAddress);
-      const cell = worksheet[cellRef];
-      headers.push(cell ? cell.v : `Column ${C}`);
-    }
-    console.log('Excel Headers:', headers);
     
     const jsonData = xlsx.utils.sheet_to_json(worksheet);
     console.log('Excel Data:', jsonData);
     
-    // Process the Excel data - manually extract data
+    // Process the Excel data
     const items = [];
-    let row = 1; // Data শুরু হয় কোন row থেকে (0-based)
     
-    while (true) {
-      const nameCell = worksheet[xlsx.utils.encode_cell({ r: row, c: 0 })]; // Column A
-      const phoneCell = worksheet[xlsx.utils.encode_cell({ r: row, c: 1 })]; // Column B
-      const productCell = worksheet[xlsx.utils.encode_cell({ r: row, c: 2 })]; // Column C
-      const amountCell = worksheet[xlsx.utils.encode_cell({ r: row, c: 3 })]; // Column D
-      
-      if (!nameCell && !phoneCell && !productCell && !amountCell) break;
-      
-      const customerName = nameCell ? nameCell.v : '';
-      const phone = phoneCell ? phoneCell.v.toString() : '';
-      const product = productCell ? productCell.v : '';
-      
+    for (const row of jsonData) {
+      const customerName = row['Customer Name'] || row['customerName'] || row['Name'] || '';
+      const product = row['Product'] || row['product'] || '';
       let amount = 0;
-      if (amountCell) {
-        if (typeof amountCell.v === 'string') {
-          amount = parseFloat(amountCell.v.replace(/[^\d.]/g, '')) || 0;
+      
+      if (row['Amount'] || row['amount'] || row['Price'] || row['price']) {
+        const amountValue = row['Amount'] || row['amount'] || row['Price'] || row['price'];
+        if (typeof amountValue === 'string') {
+          amount = parseFloat(amountValue.replace(/[^\d.]/g, '')) || 0;
         } else {
-          amount = parseFloat(amountCell.v) || 0;
+          amount = parseFloat(amountValue) || 0;
         }
       }
       
@@ -269,16 +267,9 @@ app.post('/api/upload', auth, upload.single('excelFile'), async (req, res) => {
           total: amount
         });
       }
-      
-      row++;
     }
 
     const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
-    
-    // Temporary file delete করুন
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     
     res.json({ 
       success: true, 
@@ -288,9 +279,6 @@ app.post('/api/upload', auth, upload.single('excelFile'), async (req, res) => {
     });
   } catch (error) {
     console.error('File processing error:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ 
       success: false,
       message: 'File processing failed', 
@@ -357,7 +345,7 @@ app.post('/api/submit-bill', auth, async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Bill submission failed', 
-      error: error.message // Development mode তে error message দেখাবে
+      error: error.message
     });
   }
 });
@@ -478,8 +466,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Production এ Static files serving
+if (process.env.NODE_ENV === 'production') {
+  // Express static folder serve করুন
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  
+  // সব requests React app এ redirect করুন
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  });
+}
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
