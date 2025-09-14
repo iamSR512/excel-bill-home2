@@ -10,6 +10,7 @@ const fs = require('fs');
 const clientRoutes = require('./routes/clients');
 const app = express();
 const Client = require('./models/Client');
+require('dotenv').config();
 
 app.use(cors());
 app.use(express.json());
