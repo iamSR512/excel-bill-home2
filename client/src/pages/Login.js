@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-
+import { API_BASE_URL } from '../config'; // config.js থেকে import করুন
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -23,7 +23,7 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch(`${API_BASE_URL}/api/login`, { // API_BASE_URL ব্যবহার করুন
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-
+import { API_BASE_URL } from '../config';
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,7 +10,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/profile', {
+        const response = await fetch(`${API_BASE_URL}/api/profile`, { // API_BASE_URL ব্যবহার করুন
           headers: {
             'Authorization': `Bearer ${token}`
           }
