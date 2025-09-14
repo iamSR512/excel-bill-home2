@@ -14,7 +14,7 @@ const app = express();
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://your-vercel-app.vercel.app'
+  'https://your-vercel-app.vercel.app' // আপনার ভেরসেল অ্যাপের URL এখানে দিন
 ];
 
 app.use(cors({
@@ -398,11 +398,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Production এ Static files serving
+// Production এ শুধুমাত্র API serve করুন
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  // API রাউটস ছাড়া অন্য কোন রাউটে req আসলে error message দিন
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    res.status(404).json({
+      success: false,
+      message: 'API endpoint not found. Please use /api routes.',
+      availableEndpoints: [
+        '/api/health',
+        '/api/register',
+        '/api/login',
+        '/api/upload',
+        '/api/submit-bill',
+        '/api/bills',
+        '/api/profile'
+      ]
+    });
   });
 }
 
