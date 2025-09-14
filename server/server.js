@@ -15,7 +15,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://excel-bill-home2-oglb.vercel.app' // আপনার Vercel app URL
+  'https://excel-bill-home2-oglb.vercel.app', // আপনার Vercel app URL
+  'https://excel-bill-home2-oglb.vercel.app/' // trailing slash সহ
 ];
 
 app.use(cors({

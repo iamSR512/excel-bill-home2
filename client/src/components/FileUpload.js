@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from '../config'; // config থেকে import করুন
 
 const FileUpload = ({ onDataProcessed }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -36,7 +37,7 @@ const FileUpload = ({ onDataProcessed }) => {
       const token = localStorage.getItem("token");
       
       // First try to get client-specific rates
-      const res = await fetch("http://localhost:5000/api/clients/check", {
+      const res = await fetch(`${API_BASE_URL}/api/clients/check`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -69,7 +70,7 @@ const FileUpload = ({ onDataProcessed }) => {
       }
       
       // If client doesn't exist or has no rate config, fetch global rate config
-      const globalRes = await fetch("http://localhost:5000/api/rate-config");
+      const globalRes = await fetch(`${API_BASE_URL}/api/rate-config`);;
       const globalData = await globalRes.json();
       
       if (globalData.success && globalData.config) {

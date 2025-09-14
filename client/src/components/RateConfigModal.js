@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { API_BASE_URL } from '../config';
 
 const RateConfigModal = ({ isOpen, onClose }) => {
   const [ratePerKg, setRatePerKg] = useState(0);
@@ -36,13 +35,9 @@ const RateConfigModal = ({ isOpen, onClose }) => {
 
   const saveRateConfig = async () => {
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/rate-config`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           ratePerKg, 
           usdSurcharge, 
@@ -137,7 +132,7 @@ const RateConfigModal = ({ isOpen, onClose }) => {
           />
         </div>
 
-        <h4 style={{ marginTop: "20px", marginBottom: '10px' }}>GLOBAL DISCOUNT CONFIGURATION</h4>
+        <h4 style={{ marginTop: "20px", marginBottom: "10px" }}>GLOBAL DISCOUNT CONFIGURATION</h4>
 
         <div style={{ marginBottom: "15px" }}>
           <label>Discount Type:</label>
