@@ -11,15 +11,23 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS configuration
+// CORS configuration - Production ready
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://your-vercel-app.vercel.app' // আপনার ভেরসেল অ্যাপের URL এখানে দিন
+  'http://localhost:3001',
+  'https://excel-bill-home2-oglb.vercel.app' // আপনার Vercel app URL
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+    
+    // Allow all subdomains of vercel.app
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -28,7 +36,6 @@ app.use(cors({
   },
   credentials: true
 }));
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
