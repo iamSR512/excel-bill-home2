@@ -43,6 +43,7 @@ const FileUpload = ({ onDataProcessed }) => {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : "",
         },
+         credentials: 'include',
         body: JSON.stringify({ name, address }),
       });
       

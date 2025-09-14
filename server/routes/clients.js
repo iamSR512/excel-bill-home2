@@ -3,6 +3,37 @@ const Client = require('../models/Client');
 const RateConfig = require('../models/RateConfig');
 const router = express.Router();
 
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://excel-bill-home2-oglb.vercel.app'
+];
+
+// CORS middleware for this router
+router.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || (origin && (origin.includes('vercel.app') || origin.includes('localhost')))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  next();
+});
+
+// Handle preflight requests for all routes in this router
+router.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || (origin && (origin.includes('vercel.app') || origin.includes('localhost')))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.sendStatus(200);
+});
+
 // Get all clients
 router.get('/', async (req, res) => {
   try {
