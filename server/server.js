@@ -7,22 +7,19 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
-const clientRoutes = require('./routes/clients');
-const app = express();
-const Client = require('./models/Client');
 require('dotenv').config();
 
-// CORS কনফিগারেশন - প্রোডাকশন রেডি
+const app = express();
+
+// CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://your-vercel-app.vercel.app' // আপনার ভেরসেল অ্যাপের URL এখানে দিন
+  'https://your-vercel-app.vercel.app'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -35,12 +32,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// রাউটস
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/clients', clientRoutes);
-app.use('/api/rate-config', require('./routes/rateConfig'));
-
-// MongoDB connection - .env থেকে নিন
+// MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mern:gpGPSjUAqIaazWFi@cluster7.gynar.mongodb.net/excel-bill-management?retryWrites=true&w=majority&appName=Cluster7';
 
 mongoose.connect(MONGODB_URI, {
@@ -53,20 +45,17 @@ mongoose.connect(MONGODB_URI, {
   process.exit(1);
 });
 
-// User Model
-const UserSchema = new mongoose.Schema({
+// Model Definitions - Check if model already exists before defining
+const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String,
   role: { type: String, default: 'user' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
-});
+}));
 
-const User = mongoose.model('User', UserSchema);
-
-// Bill Model
-const BillSchema = new mongoose.Schema({
+const Bill = mongoose.models.Bill || mongoose.model('Bill', new mongoose.Schema({
   customerName: String,
   customerEmail: String,
   customerPhone: String,
@@ -92,11 +81,9 @@ const BillSchema = new mongoose.Schema({
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, default: 'Pending' },
   submissionDate: { type: Date, default: Date.now }
-});
+}));
 
-const Bill = mongoose.model('Bill', BillSchema);
-
-// Multer configuration - Memory storage ব্যবহার করুন
+// Multer configuration
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage: storage,
@@ -112,7 +99,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024
   }
 });
 
@@ -134,7 +121,6 @@ const auth = async (req, res, next) => {
   }
 };
 
-// isAdmin middleware
 const isAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
@@ -142,12 +128,16 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/clients', require('./routes/clients'));
+app.use('/api/rate-config', require('./routes/rateConfig'));
+
 // User registration
 app.post('/api/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
     
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
@@ -196,7 +186,7 @@ app.post('/api/login', async (req, res) => {
     }
     
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret-key');
-     console.log('Login successful for user:', {
+    console.log('Login successful for user:', {
       id: user._id,
       name: user.name,
       email: user.email,
@@ -233,7 +223,6 @@ app.post('/api/upload', auth, upload.single('excelFile'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Buffer থেকে workbook পড়ুন
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
@@ -241,7 +230,6 @@ app.post('/api/upload', auth, upload.single('excelFile'), async (req, res) => {
     const jsonData = xlsx.utils.sheet_to_json(worksheet);
     console.log('Excel Data:', jsonData);
     
-    // Process the Excel data
     const items = [];
     
     for (const row of jsonData) {
@@ -301,7 +289,6 @@ app.post('/api/submit-bill', auth, async (req, res) => {
       });
     }
     
-    // Validate each item
     const validatedItems = items.map(item => ({
       id: item.id || '',
       awbNo: item.awbNo || '',
@@ -331,8 +318,6 @@ app.post('/api/submit-bill', auth, async (req, res) => {
     });
     
     await bill.save();
-    
-    // Populate the submittedBy field
     await bill.populate('submittedBy', 'name email');
     
     res.status(201).json({ 
@@ -353,9 +338,9 @@ app.post('/api/submit-bill', auth, async (req, res) => {
 // Get all bills (Admin only)
 app.get('/api/bills', auth, isAdmin, async (req, res) => {
   try {
-     console.log('Fetching bills for admin:', req.user.email);
+    console.log('Fetching bills for admin:', req.user.email);
     const bills = await Bill.find().populate('submittedBy', 'name email');
-        console.log(`Found ${bills.length} bills`);
+    console.log(`Found ${bills.length} bills`);
     res.json({ 
       success: true,
       bills 
@@ -413,12 +398,11 @@ app.get('/api/profile', auth, async (req, res) => {
   }
 });
 
-// Temporary route to create admin user (testing purposes)
+// Temporary route to create admin user
 app.post('/api/create-admin', async (req, res) => {
   try {
     const { name, email, password } = req.body;
     
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ 
@@ -468,10 +452,7 @@ app.get('/api/health', (req, res) => {
 
 // Production এ Static files serving
 if (process.env.NODE_ENV === 'production') {
-  // Express static folder serve করুন
   app.use(express.static(path.join(__dirname, '../client/build')));
-  
-  // সব requests React app এ redirect করুন
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
   });
@@ -481,5 +462,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
