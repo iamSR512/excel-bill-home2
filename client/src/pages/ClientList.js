@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import RateConfigModal from "../components/RateConfigModal";
+import { API_BASE_URL } from '../config';
 
 const ClientList = () => {
   const [clients, setClients] = useState([]);
@@ -29,7 +30,12 @@ const ClientList = () => {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/clients");
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE_URL}/api/clients`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.data.success) {
         const clientsData = res.data.clients;
         setClients(clientsData);
@@ -92,7 +98,12 @@ const ClientList = () => {
   // ডুপ্লিকেট ক্লায়েন্ট মুছে ফেলার ফাংশন
   const handleDeleteDuplicate = async (clientId) => {
     try {
-      const res = await axios.delete(`/api/clients/${clientId}`);
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`${API_BASE_URL}/api/clients/${clientId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.data.success) {
         alert("ডুপ্লিকেট ক্লায়েন্ট মুছে ফেলা হয়েছে!");
         fetchClients(); // তালিকা রিফ্রেশ করুন
@@ -112,12 +123,17 @@ const ClientList = () => {
   // ইমেইল সেভ করুন
   const handleSaveEmail = async (clientId) => {
     try {
-      const res = await axios.put(`/api/clients/${clientId}`, {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${API_BASE_URL}/api/clients/${clientId}`, {
         email: emailValue
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (res.data.success) {
-        alert("ইমেইল সফলভাবে আপডেট করা হয়েছে!");
+        alert("ইমেইل সফলভাবে আপডেট করা হয়েছে!");
         setEditingEmail(null);
         fetchClients();
       }
@@ -130,12 +146,17 @@ const ClientList = () => {
   // ক্লায়েন্ট টাইপ আপডেট করুন
   const handleClientTypeChange = async (clientId, newType) => {
     try {
-      const res = await axios.put(`/api/clients/${clientId}`, {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${API_BASE_URL}/api/clients/${clientId}`, {
         clientType: newType
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (res.data.success) {
-        alert("ক্লায়েন্ট টাইপ সফলভাবে আপডেট করা হয়েছে!");
+        alert("ক্লায়েন্ট টাইপ সफলভাবে আপডেট করা হয়েছে!");
         fetchClients();
       }
     } catch (err) {
@@ -147,12 +168,17 @@ const ClientList = () => {
   const handleSaveRates = async () => {
     if (!selectedClient) return;
     try {
-      const res = await axios.put(`/api/clients/${selectedClient._id}`, {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${API_BASE_URL}/api/clients/${selectedClient._id}`, {
         baseRate: baseRate === "" ? null : Number(baseRate),
         extraRatePerKg: extraRatePerKg === "" ? null : Number(extraRatePerKg),
         discountType: discountType,
         discountValue: discountValue === "" ? 0 : Number(discountValue),
         clientType: clientType
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (res.data.success) {
         alert("Rate configuration updated!");
@@ -361,7 +387,7 @@ const ClientList = () => {
 
             <h4>Rate Configuration</h4>
             
-            {/* নতুন টায়ার্ড প্রাইসিং কনফিগারেশন */}
+            {/* নতুন টায়ার্ড প্রাইসিং কনফিগারেশন */}
             <div style={{ marginBottom: "10px" }}>
               <label>Base Rate (For 1st KG): </label>
               <input

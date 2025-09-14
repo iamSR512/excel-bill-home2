@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
   const [items, setItems] = useState(initialItems || []);
@@ -39,7 +40,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         const item = items[i];
         if (item.customerName && item.cneeAddress) {
           try {
-            const response = await fetch('http://localhost:5000/api/clients/check', {
+            const response = await fetch(`${API_BASE_URL}/api/clients/check`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         total: parseFloat(item.total) || 0
       };
 
-      const response = await fetch('http://localhost:5000/api/submit-bill', {
+      const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -195,7 +196,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         total: parseFloat(item.total) || 0
       }));
 
-      const response = await fetch('http://localhost:5000/api/submit-bill', {
+      const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -251,7 +252,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
       }
 
       // সার্ভারে ডুপ্লিকেট চেক করুন
-      const duplicateCheck = await fetch('http://localhost:5000/api/clients/check-duplicate', {
+      const duplicateCheck = await fetch(`${API_BASE_URL}/api/clients/check-duplicate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -270,7 +271,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/clients/register', {
+      const response = await fetch(`${API_BASE_URL}/api/clients/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -451,4 +452,3 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
 };
 
 export default DataTable;
-

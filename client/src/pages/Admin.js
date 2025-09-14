@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../components/AdminPanel';
+import { API_BASE_URL } from '../config';
 
 const Admin = () => {
   const [bills, setBills] = useState([]);
@@ -20,7 +21,7 @@ const Admin = () => {
     const fetchBills = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/bills', {
+        const response = await fetch(`${API_BASE_URL}/api/bills`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -47,7 +48,7 @@ const Admin = () => {
   const handleStatusChange = async (billId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/bills/${billId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/bills/${billId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
