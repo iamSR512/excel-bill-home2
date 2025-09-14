@@ -11,7 +11,7 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS configuration - Production ready
+// CORS configuration - Enhanced for production
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -19,7 +19,8 @@ const allowedOrigins = [
   'https://excel-bill-home2-oglb.vercel.app/'
 ];
 
-app.use(cors({
+// CORS options
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
@@ -37,14 +38,29 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+};
 
-// Handle preflight requests
-app.options('*', cors());
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Add CORS headers manually for all responses
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || (origin && origin.includes('vercel.app'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+});
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mern:gpGPSjUAqIaazWFi@cluster7.gynar.mongodb.net/excel-bill-management?retryWrites=true&w=majority&appName=Cluster7';
