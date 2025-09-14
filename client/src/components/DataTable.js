@@ -87,31 +87,21 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
         return;
       }
 
-      // Prepare the item data
-      const itemData = {
-        id: item.id || '',
-        awbNo: item.awbNo || '',
-        extra: item.extra || '',
-        shipper: item.shipper || '',
-        shipperAddress: item.shipperAddress || '',
-        consignee: item.customerName || '',
-        binVat: item.binVat || '',
-        dest: item.dest || '',
-        cneeAddress: item.cneeAddress || '',
-        ctc: item.ctc || '',
-        telNo: item.telNo || '',
-        nop: item.nop || '',
-        wt: item.wt || '',
-        vol: item.vol || '',
-        dsct: item.product || '',
-        cod: item.cod || '',
-        val: item.val || '',
-        re: item.re || '',
-        bagNo: item.bagNo || '',
-        price: parseFloat(item.price) || 0,
-        quantity: parseInt(item.quantity) || 1,
-        discount: parseInt(item.discount) || 0,
-        total: parseFloat(item.total) || 0
+      // Prepare the bill data
+      const billData = {
+        customerName: item.customerName,
+        customerEmail: `${item.customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
+        customerPhone: item.telNo || '0000000000',
+        items: [
+          {
+            product: item.product || '',
+            price: parseFloat(item.price) || 0,
+            quantity: parseInt(item.quantity) || 1,
+            discount: parseInt(item.discount) || 0,
+            total: parseFloat(item.total) || 0
+          }
+        ],
+        grandTotal: parseFloat(item.total) || 0
       };
 
       const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
@@ -120,13 +110,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          customerName: item.customerName,
-          customerEmail: `${item.customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
-          customerPhone: item.telNo || '0000000000', // Use telNo instead of phone
-          items: [itemData],
-          grandTotal: item.total
-        })
+        body: JSON.stringify(billData)
       });
       
       const data = await response.json();
@@ -171,30 +155,20 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
 
       // Prepare all items
       const allItemsData = items.map(item => ({
-        id: item.id || '',
-        awbNo: item.awbNo || '',
-        extra: item.extra || '',
-        shipper: item.shipper || '',
-        shipperAddress: item.shipperAddress || '',
-        consignee: item.customerName || '',
-        binVat: item.binVat || '',
-        dest: item.dest || '',
-        cneeAddress: item.cneeAddress || '',
-        ctc: item.ctc || '',
-        telNo: item.telNo || '',
-        nop: item.nop || '',
-        wt: item.wt || '',
-        vol: item.vol || '',
-        dsct: item.product || '',
-        cod: item.cod || '',
-        val: item.val || '',
-        re: item.re || '',
-        bagNo: item.bagNo || '',
+        product: item.product || '',
         price: parseFloat(item.price) || 0,
         quantity: parseInt(item.quantity) || 1,
         discount: parseInt(item.discount) || 0,
         total: parseFloat(item.total) || 0
       }));
+
+      const billData = {
+        customerName: "বহু গ্রাহক",
+        customerEmail: "multiple@example.com",
+        customerPhone: "0000000000",
+        items: allItemsData,
+        grandTotal: grandTotal
+      };
 
       const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
         method: 'POST',
@@ -202,13 +176,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          customerName: "বহু গ্রাহক",
-          customerEmail: "multiple@example.com",
-          customerPhone: "0000000000",
-          items: allItemsData,
-          grandTotal: grandTotal
-        })
+        body: JSON.stringify(billData)
       });
       
       const data = await response.json();
@@ -281,7 +249,7 @@ const DataTable = ({ items: initialItems, grandTotal: initialGrandTotal }) => {
           name: item.customerName,
           address: item.cneeAddress,
           email: `${item.customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
-          phone: item.telNo || '0000000000', // Use telNo instead of phone
+          phone: item.telNo || '0000000000',
           registeredBy: user.id
         })
       });
