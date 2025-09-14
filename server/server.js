@@ -45,43 +45,9 @@ mongoose.connect(MONGODB_URI, {
   process.exit(1);
 });
 
-// Model Definitions - Check if model already exists before defining
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
-  role: { type: String, default: 'user' },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-}));
-
-const Bill = mongoose.models.Bill || mongoose.model('Bill', new mongoose.Schema({
-  customerName: String,
-  customerEmail: String,
-  customerPhone: String,
-  items: [{
-    id: String,
-    awbNo: String,
-    shipper: String,
-    shipperAddress: String,
-    dest: String,
-    cneeAddress: String,
-    nop: String,
-    wt: String,
-    product: String,
-    cod: String,
-    val: String,
-    binVat: String,
-    price: Number,
-    quantity: Number,
-    discount: Number,
-    total: Number
-  }],
-  grandTotal: Number,
-  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  status: { type: String, default: 'Pending' },
-  submissionDate: { type: Date, default: Date.now }
-}));
+// Import models from models directory
+const User = require('./models/User');
+const Bill = require('./models/Bill');
 
 // Multer configuration
 const storage = multer.memoryStorage();
@@ -136,15 +102,14 @@ app.use('/api/rate-config', require('./routes/rateConfig'));
 // User registration
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password } = req.body;
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
     
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword });
+    const user = new User({ username, email, password });
     await user.save();
     
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret-key');
@@ -154,7 +119,7 @@ app.post('/api/register', async (req, res) => {
       token, 
       user: { 
         id: user._id, 
-        name: user.name, 
+        username: user.username, 
         email: user.email, 
         role: user.role 
       } 
@@ -174,12 +139,13 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log('Login attempt for email:', email);
+    
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'User not found' });
     }
     
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.correctPassword(password, user.password);
     if (!isMatch) {
       console.log('Password does not match');
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -188,7 +154,7 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret-key');
     console.log('Login successful for user:', {
       id: user._id,
-      name: user.name,
+      username: user.username,
       email: user.email,
       role: user.role
     });
@@ -199,7 +165,7 @@ app.post('/api/login', async (req, res) => {
       token, 
       user: { 
         id: user._id, 
-        name: user.name, 
+        username: user.username, 
         email: user.email, 
         role: user.role 
       } 
@@ -280,45 +246,28 @@ app.post('/api/submit-bill', auth, async (req, res) => {
   try {
     console.log('Received bill submission:', req.body);
     
-    const { customerName, customerEmail, customerPhone, items, grandTotal } = req.body;
+    const { customerName, customerNumber, productName, billAmount, discountPercent, finalAmount, excelData } = req.body;
     
-    if (!customerName || !items || items.length === 0) {
+    if (!customerName || !customerNumber || !productName || !billAmount) {
       return res.status(400).json({ 
         success: false,
-        message: 'Customer name and items are required' 
+        message: 'Required fields are missing' 
       });
     }
     
-    const validatedItems = items.map(item => ({
-      id: item.id || '',
-      awbNo: item.awbNo || '',
-      shipper: item.shipper || '',
-      shipperAddress: item.shipperAddress || '',
-      dest: item.dest || '',
-      cneeAddress: item.cneeAddress || '',
-      nop: item.nop || '',
-      wt: item.wt || '',
-      product: item.product || '',
-      cod: item.cod || '',
-      val: item.val || '',
-      binVat: item.binVat || '',
-      price: parseFloat(item.price) || 0,
-      quantity: parseInt(item.quantity) || 1,
-      discount: parseInt(item.discount) || 0,
-      total: parseFloat(item.total) || 0
-    }));
-    
     const bill = new Bill({
       customerName,
-      customerEmail: customerEmail || `${customerName.toLowerCase().replace(/\s+/g, '')}@example.com`,
-      customerPhone: customerPhone || '0000000000',
-      items: validatedItems,
-      grandTotal: parseFloat(grandTotal) || 0,
+      customerNumber,
+      productName,
+      billAmount: parseFloat(billAmount),
+      discountPercent: parseFloat(discountPercent) || 0,
+      finalAmount: parseFloat(finalAmount),
+      excelData,
       submittedBy: req.user._id
     });
     
     await bill.save();
-    await bill.populate('submittedBy', 'name email');
+    await bill.populate('submittedBy', 'username email');
     
     res.status(201).json({ 
       success: true,
@@ -339,7 +288,7 @@ app.post('/api/submit-bill', auth, async (req, res) => {
 app.get('/api/bills', auth, isAdmin, async (req, res) => {
   try {
     console.log('Fetching bills for admin:', req.user.email);
-    const bills = await Bill.find().populate('submittedBy', 'name email');
+    const bills = await Bill.find().populate('submittedBy', 'username email');
     console.log(`Found ${bills.length} bills`);
     res.json({ 
       success: true,
@@ -401,7 +350,7 @@ app.get('/api/profile', auth, async (req, res) => {
 // Temporary route to create admin user
 app.post('/api/create-admin', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password } = req.body;
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -411,11 +360,10 @@ app.post('/api/create-admin', async (req, res) => {
       });
     }
     
-    const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ 
-      name, 
+      username, 
       email, 
-      password: hashedPassword, 
+      password, 
       role: 'admin' 
     });
     
@@ -426,7 +374,7 @@ app.post('/api/create-admin', async (req, res) => {
       message: 'Admin user created successfully',
       user: {
         id: user._id,
-        name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role
       }
