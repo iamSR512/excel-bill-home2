@@ -15,8 +15,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://excel-bill-home2-oglb.vercel.app', // আপনার Vercel app URL
-  'https://excel-bill-home2-oglb.vercel.app/' // trailing slash সহ
+  'https://excel-bill-home2-oglb.vercel.app',
+  'https://excel-bill-home2-oglb.vercel.app/'
 ];
 
 app.use(cors({
@@ -24,8 +24,8 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Allow all subdomains of vercel.app
-    if (origin.endsWith('.vercel.app')) {
+    // Allow all subdomains of vercel.app and localhost
+    if (origin.includes('vercel.app') || origin.includes('localhost')) {
       return callback(null, true);
     }
     
@@ -35,8 +35,14 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
