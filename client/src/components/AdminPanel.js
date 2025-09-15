@@ -13,11 +13,14 @@ const AdminPanel = ({ bills, onStatusChange }) => {
     );
   }
 
+  // Reverse the bills array to show newest bills first
+  const reversedBills = [...bills].reverse();
+
   return (
     <div className="card">
       <h3>বিল ম্যানেজমেন্ট - সম্পূর্ণ ডেটা</h3>
       
-      {bills.length === 0 ? (
+      {reversedBills.length === 0 ? (
         <div>
           <p>কোন বিল পাওয়া যায়নি</p>
           <p>বিল দেখতে হলে প্রথমে ব্যবহারকারীরা বিল সাবমিট করতে হবে।</p>
@@ -28,20 +31,11 @@ const AdminPanel = ({ bills, onStatusChange }) => {
             <thead>
               <tr style={{ backgroundColor: '#f8f9fa' }}>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>NO</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>AWB NO</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>SHIPPER</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>SHIPPER ADDRESS</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>CONSIGNEE</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>DEST</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>CNEE ADDRESS</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>NOP</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>WT</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>DSCT</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>COD</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>VAL</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>BIN/VAT</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>মূল্য</th>
-                <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>পরিমাণ</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>ডিসকাউন্ট (%)</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>মোট Amount</th>
                 <th style={{ padding: '12px', border: '1px solid #dee2e6' }}>জমাদানকারী</th>
@@ -51,24 +45,14 @@ const AdminPanel = ({ bills, onStatusChange }) => {
               </tr>
             </thead>
             <tbody>
-              {bills.map(bill => (
+              {reversedBills.map(bill => (
                 <tr key={bill._id}>
-                  {/* Use optional chaining to safely access nested properties */}
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.id || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.awbNo || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.shipper || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.shipperAddress || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.customerName}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.dest || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.cneeAddress || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.nop || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.wt || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.product || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.cod || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.val || 'N/A'}</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.binVat || 'N/A'}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.price || 0} টাকা</td>
-                  <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.quantity || 1}</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.items?.[0]?.discount || 0}%</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.finalAmount || bill.billAmount || 0} টাকা</td>
                   <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>{bill.submittedBy?.username || bill.submittedBy?.name || 'Unknown'}</td>
