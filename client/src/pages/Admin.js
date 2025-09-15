@@ -8,7 +8,7 @@ const Admin = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,36 +17,36 @@ const Admin = () => {
       return;
     }
 
-    const fetchBills = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/bills`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          setBills(data.bills);
-        } else {
-          setError(data.message || 'বিল ডেটা লোড করতে সমস্যা হয়েছে');
-        }
-      } catch (error) {
-        setError('বিল ডেটা লোড করতে সমস্যা হয়েছে: ' + error.message);
-        console.error('Bills fetch error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBills();
   }, [user, navigate]);
+
+  const fetchBills = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/api/bills`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setBills(data.bills);
+      } else {
+        setError(data.message || 'বিল ডেটা লোড করতে সমস্যা হয়েছে');
+      }
+    } catch (error) {
+      setError('বিল ডেটা লোড করতে সমস্যা হয়েছে: ' + error.message);
+      console.error('Bills fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStatusChange = async (billId, newStatus) => {
     try {
@@ -63,9 +63,12 @@ const Admin = () => {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        setBills(prev => prev.map(bill => 
-          bill._id === billId ? { ...bill, status: newStatus } : bill
-        ));
+        // Update the local state
+        setBills(prevBills => 
+          prevBills.map(bill => 
+            bill._id === billId ? { ...bill, status: newStatus } : bill
+          )
+        );
         alert('বিল স্ট্যাটাস আপডেট করা হয়েছে');
       } else {
         alert(data.message || 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে');
@@ -75,22 +78,6 @@ const Admin = () => {
       console.error('Status update error:', error);
     }
   };
-
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="container">
-        <div className="card">
-          <h2>অ্যাক্সেস ডিনাইড</h2>
-          <p>আপনার অ্যাডমিন প্যানেল অ্যাক্সেস করার অনুমতি নেই।</p>
-          <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -109,11 +96,8 @@ const Admin = () => {
         <div className="card">
           <h2>অ্যাডমিন প্যানেল</h2>
           <p style={{ color: 'red' }}>{error}</p>
-          <button onClick={() => window.location.reload()} className="btn btn-primary">
-            রিফ্রেশ করুন
-          </button>
-          <button onClick={handleBack} className="btn btn-secondary" style={{ marginLeft: '10px' }}>
-            হোম পেজে ফিরে যান
+          <button onClick={fetchBills} className="btn btn-primary">
+            আবার试试 করুন
           </button>
         </div>
       </div>
@@ -124,7 +108,9 @@ const Admin = () => {
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>অ্যাডমিন প্যানেল</h1>
-        <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
+        <button onClick={() => navigate('/')} className="btn btn-primary">
+          হোম পেজে ফিরে যান
+        </button>
       </div>
       
       <AdminPanel bills={bills} onStatusChange={handleStatusChange} />

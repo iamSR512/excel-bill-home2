@@ -331,6 +331,13 @@ app.put('/api/bills/:id/status', auth, isAdmin, async (req, res) => {
       { new: true }
     ).populate('submittedBy', 'username email');
     
+    if (!bill) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bill not found'
+      });
+    }
+    
     res.json({ 
       success: true,
       message: 'Bill status updated successfully', 
