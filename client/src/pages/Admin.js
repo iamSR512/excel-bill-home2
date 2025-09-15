@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../components/AdminPanel';
-import { API_BASE_URL } from '../config'; // config.js থেকে import করুন
+import { API_BASE_URL } from '../config';
+
 const Admin = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +12,6 @@ const Admin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // সরাসরি URL দিয়ে access করলে check করুন
     if (!user || user.role !== 'admin') {
       navigate('/');
       return;
@@ -20,21 +20,25 @@ const Admin = () => {
     const fetchBills = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
+        const response = await fetch(`${API_BASE_URL}/api/bills`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (response.ok) {
-          setBills(data.bills || data);
+        if (data.success) {
+          setBills(data.bills);
         } else {
           setError(data.message || 'বিল ডেটা লোড করতে সমস্যা হয়েছে');
         }
       } catch (error) {
-        setError('বিল ডেটা লোড করতে সমস্যা হয়েছে');
+        setError('বিল ডেটা লোড করতে সমস্যা হয়েছে: ' + error.message);
         console.error('Bills fetch error:', error);
       } finally {
         setLoading(false);
@@ -47,7 +51,7 @@ const Admin = () => {
   const handleStatusChange = async (billId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
+      const response = await fetch(`${API_BASE_URL}/api/bills/${billId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +62,7 @@ const Admin = () => {
       
       const data = await response.json();
       
-      if (response.ok) {
+      if (response.ok && data.success) {
         setBills(prev => prev.map(bill => 
           bill._id === billId ? { ...bill, status: newStatus } : bill
         ));
@@ -123,7 +127,6 @@ const Admin = () => {
         <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
       </div>
       
-      {/* AdminPanel কম্পোনেন্ট ব্যবহার করুন */}
       <AdminPanel bills={bills} onStatusChange={handleStatusChange} />
     </div>
   );

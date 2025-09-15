@@ -15,31 +15,30 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://excel-bill-home2-oglb.vercel.app',
-  'https://excel-bill-home2-oglb.vercel.app/'
+  'https://excel-bill-home2-oglb.vercel.app'
 ];
 
-// Handle preflight requests first
+// Handle preflight requests for all routes
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || (origin && origin.includes('vercel.app'))) {
+  if (allowedOrigins.includes(origin) || (origin && (origin.includes('vercel.app') || origin.includes('localhost')))) {
     res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.sendStatus(200);
 });
 
 // CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || (origin && origin.includes('vercel.app'))) {
+  if (allowedOrigins.includes(origin) || (origin && (origin.includes('vercel.app') || origin.includes('localhost')))) {
     res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   next();
 });
 
@@ -255,28 +254,32 @@ app.post('/api/upload', auth, upload.single('excelFile'), async (req, res) => {
   }
 });
 
-// Bill submission
+// Bill submission - Updated to match frontend data structure
 app.post('/api/submit-bill', auth, async (req, res) => {
   try {
     console.log('Received bill submission:', req.body);
     
-    const { customerName, customerNumber, productName, billAmount, discountPercent, finalAmount, excelData } = req.body;
+    const { customerName, customerEmail, customerPhone, items, grandTotal } = req.body;
     
-    if (!customerName || !customerNumber || !productName || !billAmount) {
+    if (!customerName || !items || items.length === 0) {
       return res.status(400).json({ 
         success: false,
         message: 'Required fields are missing' 
       });
     }
     
+    // প্রথম item থেকে productName নিন
+    const productName = items[0].product || 'Unknown Product';
+    const customerNumber = customerPhone || '0000000000';
+    
     const bill = new Bill({
       customerName,
       customerNumber,
       productName,
-      billAmount: parseFloat(billAmount),
-      discountPercent: parseFloat(discountPercent) || 0,
-      finalAmount: parseFloat(finalAmount),
-      excelData,
+      billAmount: grandTotal, // সামগ্রিক Bill amount
+      discountPercent: 0, // Frontend থেকে discount percent না পাঠালে default 0
+      finalAmount: grandTotal, // Final amount
+      excelData: items, // সমস্ত items ক excelData হিসেবে স保存 করুন
       submittedBy: req.user._id
     });
     
@@ -326,7 +329,7 @@ app.put('/api/bills/:id/status', auth, isAdmin, async (req, res) => {
       req.params.id, 
       { status }, 
       { new: true }
-    );
+    ).populate('submittedBy', 'username email');
     
     res.json({ 
       success: true,
@@ -407,9 +410,9 @@ app.post('/api/create-admin', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ 
     success: true,
-    message: 'Server is running successfully',
-    timestamp: new Date().toISOString()
-  });
+      message: 'Server is running successfully',
+      timestamp: new Date().toISOString()
+    });
 });
 
 // Production এ শুধুমাত্র API serve করুন

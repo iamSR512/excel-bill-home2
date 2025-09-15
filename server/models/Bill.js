@@ -26,18 +26,21 @@ const billSchema = new mongoose.Schema({
     required: true
   },
   excelData: {
-    type: Object,
+    type: mongoose.Schema.Types.Mixed,
     required: true
   },
   submittedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    required: true
   },
-  submittedAt: {
-    type: Date,
-    default: Date.now
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
   }
+}, {
+  timestamps: true
 });
 
-// Check if model already exists before defining
-module.exports = mongoose.models.Bill || mongoose.model('Bill', billSchema);
+module.exports = mongoose.model('Bill', billSchema);
