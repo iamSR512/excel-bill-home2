@@ -8,6 +8,7 @@ import Admin from './pages/Admin';
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ClientList from './pages/ClientList';
+import './App.css';
 
 function App() {
   return (
@@ -15,14 +16,16 @@ function App() {
       <Router>
         <div className="App">
           <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-            <Route path="/client-list" element={<ProtectedRoute><ClientList /></ProtectedRoute>} />
-          </Routes>
+          <div className="container">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+              <Route path="/client-list" element={<ProtectedRoute><ClientList /></ProtectedRoute>} />
+            </Routes>
+          </div>
         </div>
       </Router>
     </AuthProvider>

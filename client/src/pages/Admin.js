@@ -63,7 +63,7 @@ const Admin = () => {
       const data = await response.json();
       
       if (response.ok && data.success) {
-        // Update the local state
+        // Update the local state with the updated bill
         setBills(prevBills => 
           prevBills.map(bill => 
             bill._id === billId ? { ...bill, status: newStatus } : bill
@@ -97,7 +97,10 @@ const Admin = () => {
           <h2>অ্যাডমিন প্যানেল</h2>
           <p style={{ color: 'red' }}>{error}</p>
           <button onClick={fetchBills} className="btn btn-primary">
-            আবার试试 করুন
+            আবার চেষ্টা করুন
+          </button>
+          <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ marginLeft: '10px' }}>
+            হোম পেজে ফিরে যান
           </button>
         </div>
       </div>
