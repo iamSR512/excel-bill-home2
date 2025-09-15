@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AdminPanel from '../components/AdminPanel';
-import { API_BASE_URL } from '../config';
-
+import { API_BASE_URL } from '../config'; // config.js থেকে import করুন
 const Admin = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +20,7 @@ const Admin = () => {
     const fetchBills = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/bills`, {
+        const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -32,10 +31,10 @@ const Admin = () => {
         if (response.ok) {
           setBills(data.bills || data);
         } else {
-          setError(data.message || 'Bills Data Loading Failed');
+          setError(data.message || 'বিল ডেটা লোড করতে সমস্যা হয়েছে');
         }
       } catch (error) {
-        setError('Bills Data Loading Failed');
+        setError('বিল ডেটা লোড করতে সমস্যা হয়েছে');
         console.error('Bills fetch error:', error);
       } finally {
         setLoading(false);
@@ -48,7 +47,7 @@ const Admin = () => {
   const handleStatusChange = async (billId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/bills/${billId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/submit-bill`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -60,17 +59,15 @@ const Admin = () => {
       const data = await response.json();
       
       if (response.ok) {
-        // স্ট্যাটাস আপডেট করার পর বিলগুলি রিফ্রেশ করুন
-        const updatedBills = bills.map(bill => 
+        setBills(prev => prev.map(bill => 
           bill._id === billId ? { ...bill, status: newStatus } : bill
-        );
-        setBills(updatedBills);
-        alert('Bill status updated successfully');
+        ));
+        alert('বিল স্ট্যাটাস আপডেট করা হয়েছে');
       } else {
-        alert(data.message || 'Failed to update status');
+        alert(data.message || 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে');
       }
     } catch (error) {
-      alert('Failed to update status');
+      alert('স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে');
       console.error('Status update error:', error);
     }
   };
@@ -83,9 +80,9 @@ const Admin = () => {
     return (
       <div className="container">
         <div className="card">
-          <h2>Access Denied</h2>
-          <p>You do not have permission to access the admin panel.</p>
-          <button onClick={handleBack} className="btn btn-primary">Go Back to Home Page</button>
+          <h2>অ্যাক্সেস ডিনাইড</h2>
+          <p>আপনার অ্যাডমিন প্যানেল অ্যাক্সেস করার অনুমতি নেই।</p>
+          <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
         </div>
       </div>
     );
@@ -95,8 +92,8 @@ const Admin = () => {
     return (
       <div className="container">
         <div className="card">
-          <h2>Admin Panel</h2>
-          <p>Loading...</p>
+          <h2>অ্যাডমিন প্যানেল</h2>
+          <p>লোড হচ্ছে...</p>
         </div>
       </div>
     );
@@ -106,13 +103,13 @@ const Admin = () => {
     return (
       <div className="container">
         <div className="card">
-          <h2>Admin Panel</h2>
+          <h2>অ্যাডমিন প্যানেল</h2>
           <p style={{ color: 'red' }}>{error}</p>
           <button onClick={() => window.location.reload()} className="btn btn-primary">
-            Refresh
+            রিফ্রেশ করুন
           </button>
           <button onClick={handleBack} className="btn btn-secondary" style={{ marginLeft: '10px' }}>
-            Go Back to Home Page
+            হোম পেজে ফিরে যান
           </button>
         </div>
       </div>
@@ -122,13 +119,8 @@ const Admin = () => {
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Admin Panel</h1>
-        <div>
-          <button onClick={() => window.location.reload()} className="btn btn-secondary" style={{ marginRight: '10px' }}>
-            Refresh
-          </button>
-          <button onClick={handleBack} className="btn btn-primary">Go Back to Home Page</button>
-        </div>
+        <h1>অ্যাডমিন প্যানেল</h1>
+        <button onClick={handleBack} className="btn btn-primary">হোম পেজে ফিরে যান</button>
       </div>
       
       {/* AdminPanel কম্পোনেন্ট ব্যবহার করুন */}
